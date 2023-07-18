@@ -40,7 +40,9 @@
               <a-image :src="img.imgSrc" />
             </template>
             <div v-else class="placeholder-div">
-              <img src="@/assets/logo.png" alt="" />
+              <a-spin :spinning="isGenerating">
+                <img src="@/assets/logo.png" alt="" />
+              </a-spin>
             </div>
           </div>
         </div>
