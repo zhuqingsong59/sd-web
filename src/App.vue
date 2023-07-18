@@ -20,24 +20,29 @@
               allow-clear
             />
           </a-collapse-panel>
+          <a-collapse-panel key="setting" header="设置">
+            <div class="batch-size">
+              <p>
+                图片数量<span>{{ batchSize }}</span>
+              </p>
+              <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
+            </div>
+          </a-collapse-panel>
         </a-collapse>
-        <div class="batch-size">
-          <p>
-            图片数量<span>{{ batchSize }}</span>
-          </p>
-          <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
-        </div>
         <div class="generate-div">
-          <a-button type="primary" block @click="generate">生成</a-button>
+          <a-button type="primary" :disabled="isGenerating" block @click="generate">生成</a-button>
         </div>
       </a-layout-sider>
       <a-layout-content>
-        <template v-if="imgSrc">
-          <a-image :width="520" :src="imgSrc" />
-        </template>
-        <div v-else class="placeholder-div">
-          <img v-if="!isGenerating" src="@/assets/logo.png" alt="" />
-          <a-progress v-else type="circle" :percent="defaultPercent" />
+        <div class="show-content">
+          <div v-for="(img, index) in showPicList" :key="index" class="show-item">
+            <template v-if="img.imgSrc">
+              <a-image :src="img.imgSrc" />
+            </template>
+            <div v-else class="placeholder-div">
+              <img src="@/assets/logo.png" alt="" />
+            </div>
+          </div>
         </div>
       </a-layout-content>
     </a-layout>
@@ -45,39 +50,48 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { txt2img, progress } from '@/service'
-import { ref } from 'vue'
+
 const activeKey = ref('prompt')
 // 关键词
-const prompt = ref('beaty，young，glasses')
+const prompt = ref('beaty，young，glasses，sexy')
 // 反向关键词
 const negativePrompt = ref('')
 // 生成数量
-const batchSize = ref(1)
+const batchSize = ref(2)
 // 是否在生成中
 const isGenerating = ref(false)
 // 百分比展示
 const defaultPercent = ref(0)
-// 图片地址
-const imgSrc = ref('')
+// 图片地址列表
+const srcList = ref([])
+// 展示图片列表
+const showPicList = computed(() => {
+  let list = []
+  for (let i = 0; i < batchSize.value; i++) {
+    list.push({
+      imgSrc: srcList.value[i] ?? ''
+    })
+  }
+  return list
+})
+
+// 循环获取生成进度
 const loopProgress = (taskId) => {
   isGenerating.value = true
   progress({
-    taskId,
-    skip_current_image: true
+    taskId
   }).then(({ data }) => {
     defaultPercent.value = Number((Number(data.data.progress || 0) * 100).toFixed(0))
-    if (data.data.current_image) {
-      imgSrc.value = 'data:image/png;base64,' + data.data.current_image
-    }
     if (defaultPercent.value == 100) {
       isGenerating.value = false
-      imgSrc.value = data.data.url
+      srcList.value = data.data.urlList.map((item) => '/api' + item)
       return
     }
     setTimeout(() => {
       loopProgress(taskId)
-    }, 1000)
+    }, 5000)
   })
 }
 const generate = () => {
@@ -124,16 +138,17 @@ body,
             .ant-collapse-content-box {
               padding: 12px;
               background: #001529;
+              .batch-size {
+                padding: 12px;
+                p {
+                  color: #ffffff;
+                  span {
+                    float: right;
+                    margin-right: 12px;
+                  }
+                }
+              }
             }
-          }
-        }
-      }
-      .batch-size {
-        padding: 12px;
-        p {
-          span {
-            float: right;
-            margin-right: 12px;
           }
         }
       }
@@ -143,19 +158,34 @@ body,
     }
     .ant-layout-content {
       padding: 12px;
-      .placeholder-div {
-        width: 520px;
-        height: 520px;
-        display: flex;
-        align-items: center;
-        background: #ffffff;
-        justify-content: center;
-        border-radius: 0.375rem;
-        --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color),
-          0 2px 4px -2px var(--tw-shadow-color);
-        box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
-          var(--tw-shadow);
+      .show-content {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        .show-item {
+          float: left;
+          height: 512px;
+          background: #ffffff;
+          margin-top: 8px;
+          margin-right: 8px;
+          border-radius: 0.375rem;
+          width: calc((100% - 24px) / 4);
+          --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+          --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color),
+            0 2px 4px -2px var(--tw-shadow-color);
+          box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+            var(--tw-shadow);
+          &:nth-child(4n) {
+            margin-right: 0;
+          }
+          .placeholder-div {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+        }
       }
     }
   }

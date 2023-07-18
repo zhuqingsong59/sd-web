@@ -3,7 +3,7 @@ import axios from 'axios'
 export const txt2img = (params) => {
   return axios({
     method: 'post',
-    url: '/api/sdapi/v1/txt2img',
+    url: '/api/txt2img',
     data: params
   })
 }
@@ -11,7 +11,7 @@ export const txt2img = (params) => {
 export const progress = (params) => {
   return axios({
     method: 'post',
-    url: '/api/sdapi/v1/progress',
+    url: '/api/progress',
     data: params
   })
 }
