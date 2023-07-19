@@ -20,6 +20,24 @@
               allow-clear
             />
           </a-collapse-panel>
+          <a-collapse-panel key="uploadImage" header="上传图片">
+            <div class="uploaded-image" v-if="uploadImg">
+              <img :src="uploadImg" />
+              <DeleteFilled @click="deleteImg" />
+            </div>
+            <a-upload-dragger
+              v-else
+              name="file"
+              action=""
+              :showUploadList="false"
+              :customRequest="fileUpload"
+            >
+              <p class="ant-upload-drag-icon">
+                <UploadOutlined />
+              </p>
+              <p class="ant-upload-text">Click or drag file to this area to upload</p>
+            </a-upload-dragger>
+          </a-collapse-panel>
           <a-collapse-panel key="setting" header="设置">
             <div class="batch-size">
               <p>
@@ -53,13 +71,32 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { txt2img, progress } from '@/service'
-
+import { txt2img, img2img, progress } from '@/service'
+import { UploadOutlined, DeleteFilled } from '@ant-design/icons-vue'
 const activeKey = ref('prompt')
 // 关键词
 const prompt = ref('beaty，young，glasses，sexy')
 // 反向关键词
 const negativePrompt = ref('')
+// 图片文件转为base64
+const getBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = (error) => reject(error)
+  })
+}
+const uploadImg = ref('')
+// 上传文件
+const fileUpload = ({ file }) => {
+  getBase64(file).then((fileBase64) => {
+    uploadImg.value = fileBase64
+  })
+}
+const deleteImg = () => {
+  uploadImg.value = ''
+}
 // 生成数量
 const batchSize = ref(2)
 // 是否在生成中
@@ -97,14 +134,19 @@ const loopProgress = (taskId) => {
   })
 }
 const generate = () => {
-  txt2img({
+  const generateFn = uploadImg.value ? img2img : txt2img
+  const generateParams = {
     steps: 32,
     width: 512,
     height: 512,
     prompt: prompt.value,
     negative_prompt: negativePrompt.value,
     batch_size: batchSize.value
-  }).then(({ data }) => {
+  }
+  if (uploadImg.value) {
+    generateParams.images = uploadImg.value
+  }
+  generateFn(generateParams).then(({ data }) => {
     defaultPercent.value = 0
     loopProgress(data.data)
   })
@@ -140,6 +182,42 @@ body,
             .ant-collapse-content-box {
               padding: 12px;
               background: #001529;
+              // 图片上传
+              .ant-upload {
+                .ant-upload-btn {
+                  background-color: #fafafa;
+                  .ant-upload-drag-icon {
+                    margin-bottom: 16px;
+                    .anticon-upload {
+                      font-size: 28px;
+                    }
+                  }
+                  .ant-upload-text {
+                    font-size: 14px;
+                    color: #666666;
+                  }
+                }
+              }
+              // 上传完图片后的图片区域
+              .uploaded-image {
+                padding: 8px;
+                height: 116px;
+                position: relative;
+                text-align: center;
+                border: 1px dashed #322f2f;
+                img {
+                  width: 100px;
+                  height: 100px;
+                }
+                .anticon-delete {
+                  top: 8px;
+                  right: 8px;
+                  cursor: pointer;
+                  color: #ffffff;
+                  position: absolute;
+                }
+              }
+              // 图片数量
               .batch-size {
                 padding: 12px;
                 p {
