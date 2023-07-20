@@ -24,3 +24,11 @@ export const progress = (params) => {
     data: params
   })
 }
+// 获取图片信息
+export const pngInfo = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/pngInfo',
+    data: params
+  })
+}

@@ -37,6 +37,9 @@
               </p>
               <p class="ant-upload-text">Click or drag file to this area to upload</p>
             </a-upload-dragger>
+            <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange"
+              >解析图片信息</a-checkbox
+            >
           </a-collapse-panel>
           <a-collapse-panel key="setting" header="设置">
             <div class="batch-size">
@@ -71,7 +74,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { txt2img, img2img, progress } from '@/service'
+import { txt2img, img2img, progress, pngInfo } from '@/service'
 import { UploadOutlined, DeleteFilled } from '@ant-design/icons-vue'
 const activeKey = ref('prompt')
 // 关键词
@@ -92,13 +95,31 @@ const uploadImg = ref('')
 const fileUpload = ({ file }) => {
   getBase64(file).then((fileBase64) => {
     uploadImg.value = fileBase64
+    if (isAnalysisImg.value) {
+      analysisImg()
+    }
   })
+  // uploadImg.value = URL.createObjectURL(file)
 }
 const deleteImg = () => {
   uploadImg.value = ''
 }
+// 是否解析图片信息
+const isAnalysisImg = ref(false)
+// 获取图片信息
+const analysisImg = () => {
+  pngInfo({ images: uploadImg.value }).then(({ data }) => {
+    console.log('data: ', data)
+  })
+}
+// 获取当前上传图片的信息
+const analysisChange = () => {
+  if (isAnalysisImg.value && uploadImg.value) {
+    analysisImg()
+  }
+}
 // 生成数量
-const batchSize = ref(2)
+const batchSize = ref(1)
 // 是否在生成中
 const isGenerating = ref(false)
 // 百分比展示
@@ -216,6 +237,10 @@ body,
                   color: #ffffff;
                   position: absolute;
                 }
+              }
+              .ant-checkbox-wrapper {
+                margin-top: 8px;
+                color: #ffffff;
               }
               // 图片数量
               .batch-size {
