@@ -3,55 +3,62 @@
     <a-layout-header>xishui.ai</a-layout-header>
     <a-layout>
       <a-layout-sider width="400">
-        <a-collapse v-model:activeKey="activeKey">
-          <a-collapse-panel key="prompt" header="提示词">
-            <a-textarea
-              v-model:value="prompt"
-              placeholder="What do you want to see?"
-              allow-clear
-              :autoSize="{ minRows: 4 }"
-            />
-          </a-collapse-panel>
-          <a-collapse-panel key="negativePrompt" header="反向提示词">
-            <a-textarea
-              v-model:value="negativePrompt"
-              placeholder="What do you want to avoid?"
-              :autoSize="{ minRows: 4 }"
-              allow-clear
-            />
-          </a-collapse-panel>
-          <a-collapse-panel key="uploadImage" header="上传图片">
-            <div class="uploaded-image" v-if="uploadImg">
-              <img :src="uploadImg" />
-              <DeleteFilled @click="deleteImg" />
-            </div>
-            <a-upload-dragger
-              v-else
-              name="file"
-              action=""
-              :showUploadList="false"
-              :customRequest="fileUpload"
-            >
-              <p class="ant-upload-drag-icon">
-                <UploadOutlined />
-              </p>
-              <p class="ant-upload-text">Click or drag file to this area to upload</p>
-            </a-upload-dragger>
-            <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange"
-              >解析图片信息</a-checkbox
-            >
-          </a-collapse-panel>
-          <a-collapse-panel key="setting" header="设置">
-            <div class="batch-size">
-              <p>
-                图片数量<span>{{ batchSize }}</span>
-              </p>
-              <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
-            </div>
-          </a-collapse-panel>
-        </a-collapse>
-        <div class="generate-div">
-          <a-button type="primary" :disabled="isGenerating" block @click="generate">生成</a-button>
+        <div class="aside-content">
+          <a-collapse v-model:activeKey="activeKey">
+            <a-collapse-panel key="prompt" header="提示词">
+              <a-textarea
+                v-model:value="prompt"
+                placeholder="What do you want to see?"
+                allow-clear
+                :autoSize="{ minRows: 4 }"
+              />
+            </a-collapse-panel>
+            <a-collapse-panel key="negativePrompt" header="反向提示词">
+              <a-textarea
+                v-model:value="negativePrompt"
+                placeholder="What do you want to avoid?"
+                :autoSize="{ minRows: 4 }"
+                allow-clear
+              />
+            </a-collapse-panel>
+            <a-collapse-panel key="uploadImage" header="上传图片">
+              <div class="uploaded-image" v-if="uploadImg">
+                <img :src="uploadImg" />
+                <DeleteFilled @click="deleteImg" />
+              </div>
+              <a-upload-dragger
+                v-else
+                name="file"
+                action=""
+                :showUploadList="false"
+                :customRequest="fileUpload"
+              >
+                <p class="ant-upload-drag-icon">
+                  <UploadOutlined />
+                </p>
+                <p class="ant-upload-text">Click or drag file to this area to upload</p>
+              </a-upload-dragger>
+              <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange"
+                >解析图片信息</a-checkbox
+              >
+            </a-collapse-panel>
+            <a-collapse-panel key="setting" header="设置">
+              <div class="batch-size">
+                <p>
+                  图片数量<span>{{ batchSize }}</span>
+                </p>
+                <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
+              </div>
+            </a-collapse-panel>
+          </a-collapse>
+          <div class="generate-div">
+            <a-button type="primary" :disabled="isGenerating" block @click="generate">
+              生成
+            </a-button>
+            <!-- <a-button type="primary" style="margin-top: 16px" block @click="testFn">
+              测试
+            </a-button> -->
+          </div>
         </div>
       </a-layout-sider>
       <a-layout-content>
@@ -74,7 +81,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { txt2img, img2img, progress, pngInfo } from '@/service'
+import { txt2img, img2img, progress, pngInfo, testApi } from '@/service'
 import { UploadOutlined, DeleteFilled } from '@ant-design/icons-vue'
 const activeKey = ref('prompt')
 // 关键词
@@ -109,7 +116,10 @@ const isAnalysisImg = ref(false)
 // 获取图片信息
 const analysisImg = () => {
   pngInfo({ images: uploadImg.value }).then(({ data }) => {
-    console.log('data: ', data)
+    if (data.data.info) {
+      prompt.value = data.data.info.Prompt
+      negativePrompt.value = data.data.info.Negative_prompt
+    }
   })
 }
 // 获取当前上传图片的信息
@@ -172,6 +182,12 @@ const generate = () => {
     loopProgress(data.data)
   })
 }
+
+const testFn = () => {
+  testApi().then(({ data }) => {
+    console.log('data: ', data)
+  })
+}
 </script>
 
 <style lang="scss">
@@ -189,76 +205,80 @@ body,
     }
     .ant-layout-sider {
       color: #ffffff;
-      .ant-collapse {
-        background: #001529;
-        border-color: #001529;
-        .ant-collapse-item {
-          border-bottom: none;
-          .ant-collapse-header {
-            color: #ffffff;
-            user-select: none;
-          }
-          .ant-collapse-content {
-            border-top: none;
-            .ant-collapse-content-box {
-              padding: 12px;
-              background: #001529;
-              // 图片上传
-              .ant-upload {
-                .ant-upload-btn {
-                  background-color: #fafafa;
-                  .ant-upload-drag-icon {
-                    margin-bottom: 16px;
-                    .anticon-upload {
-                      font-size: 28px;
+      .aside-content {
+        height: 100%;
+        overflow: auto;
+        .ant-collapse {
+          background: #001529;
+          border-color: #001529;
+          .ant-collapse-item {
+            border-bottom: none;
+            .ant-collapse-header {
+              color: #ffffff;
+              user-select: none;
+            }
+            .ant-collapse-content {
+              border-top: none;
+              .ant-collapse-content-box {
+                padding: 12px;
+                background: #001529;
+                // 图片上传
+                .ant-upload {
+                  .ant-upload-btn {
+                    background-color: #fafafa;
+                    .ant-upload-drag-icon {
+                      margin-bottom: 16px;
+                      .anticon-upload {
+                        font-size: 28px;
+                      }
+                    }
+                    .ant-upload-text {
+                      font-size: 14px;
+                      color: #666666;
                     }
                   }
-                  .ant-upload-text {
-                    font-size: 14px;
-                    color: #666666;
+                }
+                // 上传完图片后的图片区域
+                .uploaded-image {
+                  padding: 8px;
+                  height: 116px;
+                  position: relative;
+                  text-align: center;
+                  border: 1px dashed #322f2f;
+                  img {
+                    width: 100px;
+                    height: 100px;
+                  }
+                  .anticon-delete {
+                    top: 8px;
+                    right: 8px;
+                    cursor: pointer;
+                    color: #ffffff;
+                    position: absolute;
                   }
                 }
-              }
-              // 上传完图片后的图片区域
-              .uploaded-image {
-                padding: 8px;
-                height: 116px;
-                position: relative;
-                text-align: center;
-                border: 1px dashed #322f2f;
-                img {
-                  width: 100px;
-                  height: 100px;
-                }
-                .anticon-delete {
-                  top: 8px;
-                  right: 8px;
-                  cursor: pointer;
+                .ant-checkbox-wrapper {
+                  margin-top: 8px;
                   color: #ffffff;
-                  position: absolute;
                 }
-              }
-              .ant-checkbox-wrapper {
-                margin-top: 8px;
-                color: #ffffff;
-              }
-              // 图片数量
-              .batch-size {
-                padding: 12px;
-                p {
-                  color: #ffffff;
-                  span {
-                    float: right;
-                    margin-right: 12px;
+                // 图片数量
+                .batch-size {
+                  padding: 12px;
+                  p {
+                    color: #ffffff;
+                    span {
+                      float: right;
+                      margin-right: 12px;
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
-      .generate-div {
-        padding: 12px;
+        .generate-div {
+          padding: 12px;
+        }
       }
     }
     .ant-layout-content {

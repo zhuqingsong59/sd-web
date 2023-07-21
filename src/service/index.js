@@ -1,5 +1,13 @@
 import axios from 'axios'
 const baseUrl = '/api'
+// 测试接口返回数据专用
+export const testApi = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/testApi',
+    data: params
+  })
+}
 // 文本转图片
 export const txt2img = (params) => {
   return axios({
