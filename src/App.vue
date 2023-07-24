@@ -209,10 +209,37 @@ const getLorasPrompt = (value) => {
   return `<lora:${value}:1>`
 }
 const lorasSelect = (value) => {
-  prompt.value += getLorasPrompt(value)
+  prompt.value = prompt.value + ' ' + getLorasPrompt(value)
 }
 const lorasDesekect = (value) => {
-  prompt.value = prompt.value.replace(getLorasPrompt(value), '')
+  const re_extranet = /<([^:]+:[^:]+):[\d.]+>/
+  const re_extranet_g = /\s+<([^:]+:[^:]+):[\d.]+>/g
+  const text = getLorasPrompt(value)
+  let m = text.match(re_extranet)
+  let replaced = false
+  let newPromptText
+  if (m) {
+    var partToSearch = m[1]
+    newPromptText = prompt.value.replaceAll(re_extranet_g, function (found) {
+      m = found.match(re_extranet)
+      if (m[1] == partToSearch) {
+        replaced = true
+        return ''
+      }
+      return found
+    })
+  } else {
+    newPromptText = prompt.value.replaceAll(new RegExp(text, 'g'), function (found) {
+      if (found == text) {
+        replaced = true
+        return ''
+      }
+      return found
+    })
+  }
+  if (replaced) {
+    prompt.value = newPromptText
+  }
 }
 
 onMounted(getLorasList)
