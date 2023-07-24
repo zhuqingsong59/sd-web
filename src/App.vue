@@ -49,6 +49,18 @@
                 </p>
                 <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
               </div>
+              <div class="loras-select">
+                <p>loras</p>
+                <a-select
+                  v-model:value="lorasList"
+                  mode="multiple"
+                  style="width: 100%"
+                  placeholder="请选择"
+                  :options="lorasSourceList"
+                  @select="lorasSelect"
+                  @deselect="lorasDesekect"
+                />
+              </div>
             </a-collapse-panel>
           </a-collapse>
           <div class="generate-div">
@@ -80,8 +92,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { txt2img, img2img, progress, pngInfo, testApi } from '@/service'
+import { ref, computed, onMounted } from 'vue'
+import { txt2img, img2img, progress, pngInfo, getLoras, testApi } from '@/service'
 import { UploadOutlined, DeleteFilled } from '@ant-design/icons-vue'
 const activeKey = ref('prompt')
 // 关键词
@@ -183,6 +195,28 @@ const generate = () => {
   })
 }
 
+const lorasList = ref([])
+const lorasSourceList = ref([])
+const getLorasList = () => {
+  getLoras().then(({ data }) => {
+    lorasSourceList.value = data.data.map((item) => {
+      let { name, alias } = item
+      return { label: name, value: alias }
+    })
+  })
+}
+const getLorasPrompt = (value) => {
+  return `<lora:${value}:1>`
+}
+const lorasSelect = (value) => {
+  prompt.value += getLorasPrompt(value)
+}
+const lorasDesekect = (value) => {
+  prompt.value = prompt.value.replace(getLorasPrompt(value), '')
+}
+
+onMounted(getLorasList)
+
 const testFn = () => {
   testApi().then(({ data }) => {
     console.log('data: ', data)
@@ -270,6 +304,12 @@ body,
                       float: right;
                       margin-right: 12px;
                     }
+                  }
+                }
+                .loras-select {
+                  padding: 12px;
+                  p {
+                    color: #ffffff;
                   }
                 }
               }

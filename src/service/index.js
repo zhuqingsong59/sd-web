@@ -40,3 +40,11 @@ export const pngInfo = (params) => {
     data: params
   })
 }
+// 获取loras
+export const getLoras = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/getLoras',
+    data: params
+  })
+}
