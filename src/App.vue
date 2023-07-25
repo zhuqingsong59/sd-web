@@ -49,6 +49,16 @@
                 </p>
                 <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
               </div>
+              <div class="model-select">
+                <p>model</p>
+                <a-select
+                  v-model:value="currentModel"
+                  style="width: 100%"
+                  placeholder="请选择"
+                  :options="sdModelsList"
+                  @change="modelChange"
+                />
+              </div>
               <div class="loras-select">
                 <p>loras</p>
                 <a-select
@@ -64,7 +74,12 @@
             </a-collapse-panel>
           </a-collapse>
           <div class="generate-div">
-            <a-button type="primary" :disabled="isGenerating" block @click="generate">
+            <a-button
+              type="primary"
+              :disabled="isGenerating || isChangeMode"
+              block
+              @click="generate"
+            >
               生成
             </a-button>
             <!-- <a-button type="primary" style="margin-top: 16px" block @click="testFn">
@@ -92,8 +107,19 @@
 </template>
 
 <script setup>
+import {
+  txt2img,
+  img2img,
+  progress,
+  pngInfo,
+  getLoras,
+  getModelsNames,
+  GetCurrentModel,
+  SetCurrentModel
+  // testApi
+} from '@/service'
+import { message } from 'ant-design-vue'
 import { ref, computed, onMounted } from 'vue'
-import { txt2img, img2img, progress, pngInfo, getLoras, testApi } from '@/service'
 import { UploadOutlined, DeleteFilled } from '@ant-design/icons-vue'
 const activeKey = ref('prompt')
 // 关键词
@@ -242,13 +268,42 @@ const lorasDesekect = (value) => {
   }
 }
 
-onMounted(getLorasList)
-
-const testFn = () => {
-  testApi().then(({ data }) => {
-    console.log('data: ', data)
+const sdModelsList = ref([])
+const currentModel = ref('')
+const getSdModelsList = () => {
+  getModelsNames().then(({ data }) => {
+    sdModelsList.value = data.data.map((item) => {
+      return {
+        label: item,
+        value: item
+      }
+    })
+    GetCurrentModel().then(({ data }) => {
+      currentModel.value = data.data
+    })
   })
 }
+const isChangeMode = ref(false)
+const modelChange = (modelName) => {
+  isChangeMode.value = true
+  SetCurrentModel({
+    modelName
+  }).then(() => {
+    isChangeMode.value = false
+    message.success('model切换成功')
+  })
+}
+
+onMounted(() => {
+  getLorasList()
+  getSdModelsList()
+})
+
+// const testFn = () => {
+//   testApi().then(({ data }) => {
+//     console.log('data: ', data)
+//   })
+// }
 </script>
 
 <style lang="scss">
@@ -333,6 +388,7 @@ body,
                     }
                   }
                 }
+                .model-select,
                 .loras-select {
                   padding: 12px;
                   p {

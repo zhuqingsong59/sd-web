@@ -48,3 +48,27 @@ export const getLoras = (params) => {
     data: params
   })
 }
+// 获取models
+export const getModelsNames = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/getModelsNames',
+    data: params
+  })
+}
+// 获取当前model
+export const GetCurrentModel = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/getCurrentModel',
+    data: params
+  })
+}
+// 设置当前model
+export const SetCurrentModel = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/setCurrentModel',
+    data: params
+  })
+}
