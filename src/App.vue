@@ -6,17 +6,19 @@
         <div class="aside-content">
           <a-collapse v-model:activeKey="activeKey">
             <a-collapse-panel key="prompt" header="提示词">
+              <a-button class="translate-btn" type="text">一键翻译</a-button>
               <a-textarea
                 v-model:value="prompt"
-                placeholder="What do you want to see?"
+                placeholder="提示词，请输入英文，或者输入中文后点击一键翻译"
                 allow-clear
                 :autoSize="{ minRows: 4 }"
               />
             </a-collapse-panel>
             <a-collapse-panel key="negativePrompt" header="反向提示词">
+              <a-button class="translate-btn" type="text">一键翻译</a-button>
               <a-textarea
                 v-model:value="negativePrompt"
-                placeholder="What do you want to avoid?"
+                placeholder="反向提示词，请输入英文，或者输入中文后点击一键翻译"
                 :autoSize="{ minRows: 4 }"
                 allow-clear
               />
@@ -329,6 +331,7 @@ body,
           border-color: #001529;
           .ant-collapse-item {
             border-bottom: none;
+            position: relative;
             .ant-collapse-header {
               color: #ffffff;
               user-select: none;
@@ -338,6 +341,14 @@ body,
               .ant-collapse-content-box {
                 padding: 12px;
                 background: #001529;
+                .translate-btn {
+                  position: absolute;
+                  color: #ffffff;
+                  top: 12px;
+                  right: 16px;
+                  height: 22px;
+                  padding: 0;
+                }
                 // 图片上传
                 .ant-upload {
                   .ant-upload-btn {
