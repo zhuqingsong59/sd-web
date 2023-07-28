@@ -6,7 +6,7 @@
         <div class="aside-content">
           <a-collapse v-model:activeKey="activeKey">
             <a-collapse-panel key="prompt" header="提示词">
-              <a-button class="translate-btn" type="text">一键翻译</a-button>
+              <a-button class="translate-btn" type="text" @click="translateFn()">一键翻译</a-button>
               <a-textarea
                 v-model:value="prompt"
                 placeholder="提示词，请输入英文，或者输入中文后点击一键翻译"
@@ -15,7 +15,9 @@
               />
             </a-collapse-panel>
             <a-collapse-panel key="negativePrompt" header="反向提示词">
-              <a-button class="translate-btn" type="text">一键翻译</a-button>
+              <a-button class="translate-btn" type="text" @click="translateFn(true)">
+                一键翻译
+              </a-button>
               <a-textarea
                 v-model:value="negativePrompt"
                 placeholder="反向提示词，请输入英文，或者输入中文后点击一键翻译"
@@ -115,9 +117,10 @@ import {
   progress,
   pngInfo,
   getLoras,
+  translate,
   getModelsNames,
-  GetCurrentModel,
-  SetCurrentModel
+  getCurrentModel,
+  setCurrentModel
   // testApi
 } from '@/service'
 import { message } from 'ant-design-vue'
@@ -135,6 +138,15 @@ const getBase64 = (file) => {
     reader.readAsDataURL(file)
     reader.onload = () => resolve(reader.result)
     reader.onerror = (error) => reject(error)
+  })
+}
+
+// 翻译
+const translateFn = (isNegative) => {
+  translate({
+    text: isNegative ? negativePrompt.value : prompt.value
+  }).then(({ data }) => {
+    console.log('data: ', data)
   })
 }
 const uploadImg = ref('')
@@ -237,11 +249,11 @@ const getLorasPrompt = (value) => {
   return `<lora:${value}:1>`
 }
 const lorasSelect = (value) => {
-  prompt.value = prompt.value + ' ' + getLorasPrompt(value)
+  prompt.value = prompt.value + '，' + getLorasPrompt(value)
 }
 const lorasDesekect = (value) => {
   const re_extranet = /<([^:]+:[^:]+):[\d.]+>/
-  const re_extranet_g = /\s+<([^:]+:[^:]+):[\d.]+>/g
+  const re_extranet_g = /，+<([^:]+:[^:]+):[\d.]+>/g
   const text = getLorasPrompt(value)
   let m = text.match(re_extranet)
   let replaced = false
@@ -280,7 +292,7 @@ const getSdModelsList = () => {
         value: item
       }
     })
-    GetCurrentModel().then(({ data }) => {
+    getCurrentModel().then(({ data }) => {
       currentModel.value = data.data
     })
   })
@@ -288,7 +300,7 @@ const getSdModelsList = () => {
 const isChangeMode = ref(false)
 const modelChange = (modelName) => {
   isChangeMode.value = true
-  SetCurrentModel({
+  setCurrentModel({
     modelName
   }).then(() => {
     isChangeMode.value = false

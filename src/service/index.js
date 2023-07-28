@@ -57,7 +57,7 @@ export const getModelsNames = (params) => {
   })
 }
 // 获取当前model
-export const GetCurrentModel = (params) => {
+export const getCurrentModel = (params) => {
   return axios({
     method: 'post',
     url: baseUrl + '/getCurrentModel',
@@ -65,10 +65,18 @@ export const GetCurrentModel = (params) => {
   })
 }
 // 设置当前model
-export const SetCurrentModel = (params) => {
+export const setCurrentModel = (params) => {
   return axios({
     method: 'post',
     url: baseUrl + '/setCurrentModel',
+    data: params
+  })
+}
+// 文本翻译
+export const translate = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/translate',
     data: params
   })
 }
