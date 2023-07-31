@@ -144,7 +144,7 @@ const getBase64 = (file) => {
 // 翻译
 const translateFn = (isNegative) => {
   translate({
-    text: isNegative ? negativePrompt.value : prompt.value
+    textList: isNegative ? negativePrompt.value : prompt.value
   }).then(({ data }) => {
     console.log('data: ', data)
   })
