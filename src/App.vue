@@ -47,6 +47,18 @@
               >
             </a-collapse-panel>
             <a-collapse-panel key="setting" header="设置">
+              <div class="pic-scale">
+                <p>
+                  图片比例<span>{{ scaleList[picScale - 1].scale }}</span>
+                </p>
+                <a-slider
+                  v-model:value="picScale"
+                  :tooltipVisible="false"
+                  :min="1"
+                  :max="9"
+                  @change="scaleChange"
+                />
+              </div>
               <div class="batch-size">
                 <p>
                   图片数量<span>{{ batchSize }}</span>
@@ -75,6 +87,31 @@
                   @deselect="lorasDesekect"
                 />
               </div>
+              <div class="advanced">
+                <p>
+                  <EyeOutlined v-if="hideAdvanced" @click="hideAdvanced = !hideAdvanced" />
+                  <EyeInvisibleOutlined v-else @click="hideAdvanced = !hideAdvanced" />
+                  高级设置
+                </p>
+                <div class="advanced-setting" v-show="!hideAdvanced">
+                  <div class="advanced-item">
+                    <p>Width</p>
+                    <input type="text" v-model="advancedSetting.width" />
+                  </div>
+                  <div class="advanced-item">
+                    <p>Height</p>
+                    <input type="text" v-model="advancedSetting.height" />
+                  </div>
+                  <div class="advanced-item">
+                    <p>Steps</p>
+                    <input type="text" v-model="advancedSetting.steps" />
+                  </div>
+                  <div class="advanced-item">
+                    <p>Seed</p>
+                    <input type="text" placeholder="auto" v-model="advancedSetting.seed" />
+                  </div>
+                </div>
+              </div>
             </a-collapse-panel>
           </a-collapse>
           <div class="generate-div">
@@ -94,7 +131,12 @@
       </a-layout-sider>
       <a-layout-content>
         <div class="show-content">
-          <div v-for="(img, index) in showPicList" :key="index" class="show-item">
+          <div
+            v-for="(img, index) in showPicList"
+            :key="index"
+            class="show-item"
+            :style="computedStyle"
+          >
             <template v-if="img.imgSrc">
               <a-image :src="img.imgSrc" />
             </template>
@@ -124,9 +166,14 @@ import {
   // testApi
 } from '@/service'
 import { message } from 'ant-design-vue'
-import { ref, computed, onMounted } from 'vue'
-import { UploadOutlined, DeleteFilled } from '@ant-design/icons-vue'
-const activeKey = ref('prompt')
+import { ref, computed, onMounted, reactive, watch, nextTick } from 'vue'
+import {
+  UploadOutlined,
+  DeleteFilled,
+  EyeOutlined,
+  EyeInvisibleOutlined
+} from '@ant-design/icons-vue'
+const activeKey = ref(['prompt', 'setting'])
 // 关键词
 const prompt = ref('beaty，young，glasses，sexy')
 // 反向关键词
@@ -146,7 +193,11 @@ const translateFn = (isNegative) => {
   translate({
     textList: isNegative ? negativePrompt.value : prompt.value
   }).then(({ data }) => {
-    console.log('data: ', data)
+    if (isNegative) {
+      negativePrompt.value = data.data.translated_text
+    } else {
+      prompt.value = data.data.translated_text
+    }
   })
 }
 const uploadImg = ref('')
@@ -180,12 +231,60 @@ const analysisChange = () => {
     analysisImg()
   }
 }
+
+// 图片比例
+const picScale = ref(5)
+// 比例换算对应
+const scaleList = [
+  { scale: '21 : 9', size: '1536 x 640' },
+  { scale: '16 : 9', size: '1344 x 768' },
+  { scale: '3 : 2', size: '1216 x 832' },
+  { scale: '5 : 4', size: '1152 x 896' },
+  { scale: '1 : 1', size: '1024 x 1024' },
+  { scale: '4 : 5', size: '890 x 1152' },
+  { scale: '2 : 3', size: '832 x 1216' },
+  { scale: '9 : 16', size: '768 x 1344' },
+  { scale: '9 : 21', size: '640 x 1536' }
+]
+const scaleChange = () => {
+  const [width, height] = scaleList[picScale.value - 1].size.split(' x ')
+  advancedSetting.width = width
+  advancedSetting.height = height
+}
 // 生成数量
 const batchSize = ref(1)
 // 是否在生成中
 const isGenerating = ref(false)
 // 百分比展示
 const defaultPercent = ref(0)
+// 隐藏高级设置
+const hideAdvanced = ref(true)
+const advancedSetting = reactive({
+  width: '1024',
+  height: '1024',
+  steps: '30',
+  seed: ''
+})
+
+watch(advancedSetting, () => {
+  computedStyleFn()
+})
+const computedStyle = ref({})
+const computedStyleFn = () => {
+  let height
+  let showItem = document.querySelector('.show-item')
+  const itemWidth = showItem
+    ? getComputedStyle(document.querySelector('.show-item'))?.width.replace('px', '')
+    : ''
+  if (!itemWidth) {
+    computedStyle.value = {}
+  }
+  height = (
+    (Number(itemWidth) * Number(advancedSetting.height)) /
+    Number(advancedSetting.width)
+  ).toFixed(0)
+  computedStyle.value = { height: height + 'px' }
+}
 // 图片地址列表
 const srcList = ref([])
 // 展示图片列表
@@ -219,9 +318,9 @@ const loopProgress = (taskId) => {
 const generate = () => {
   const generateFn = uploadImg.value ? img2img : txt2img
   const generateParams = {
-    steps: 32,
-    width: 512,
-    height: 512,
+    steps: advancedSetting.steps,
+    width: advancedSetting.width,
+    height: advancedSetting.height,
     prompt: prompt.value,
     negative_prompt: negativePrompt.value,
     batch_size: batchSize.value
@@ -311,6 +410,9 @@ const modelChange = (modelName) => {
 onMounted(() => {
   getLorasList()
   getSdModelsList()
+  nextTick(() => {
+    computedStyleFn()
+  })
 })
 
 // const testFn = () => {
@@ -400,6 +502,19 @@ body,
                   margin-top: 8px;
                   color: #ffffff;
                 }
+                // 图片比例
+                .pic-scale {
+                  padding: 12px;
+                  p {
+                    position: relative;
+                    color: #ffffff;
+                    span {
+                      position: absolute;
+                      left: 50%;
+                      transform: translateX(-50%);
+                    }
+                  }
+                }
                 // 图片数量
                 .batch-size {
                   padding: 12px;
@@ -416,6 +531,45 @@ body,
                   padding: 12px;
                   p {
                     color: #ffffff;
+                  }
+                }
+                // 高级设置
+                .advanced {
+                  padding: 12px;
+                  p {
+                    color: #ffffff;
+                    margin-bottom: 0;
+                    user-select: none;
+                  }
+                  .advanced-setting {
+                    padding: 12px 0;
+                    height: 100px;
+                    .advanced-item {
+                      float: left;
+                      width: 50%;
+                      height: 50px;
+                      p {
+                        height: 25px;
+                        color: #ffffff;
+                        opacity: 0.7;
+                        padding-left: 4px;
+                        line-height: 25px;
+                      }
+                      input {
+                        height: 25px;
+                        border: none;
+                        color: #ffffff;
+                        line-height: 25px;
+                        background: #001529;
+                        &:focus-visible,
+                        &:hover {
+                          border-radius: 2px;
+                          outline-offset: 2px;
+                          outline: 2px solid transparent;
+                          border: 1px solid rgb(229, 231, 235);
+                        }
+                      }
+                    }
                   }
                 }
               }
