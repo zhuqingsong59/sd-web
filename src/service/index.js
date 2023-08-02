@@ -80,3 +80,12 @@ export const translate = (params) => {
     data: params
   })
 }
+
+// 文本翻译
+export const checkControlnet = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/checkControlnet',
+    data: params
+  })
+}

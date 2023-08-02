@@ -40,7 +40,7 @@
                 <p class="ant-upload-drag-icon">
                   <UploadOutlined />
                 </p>
-                <p class="ant-upload-text">Click or drag file to this area to upload</p>
+                <p class="ant-upload-text">点击上传或者拖拽文件到此处</p>
               </a-upload-dragger>
               <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange"
                 >解析图片信息</a-checkbox
@@ -112,6 +112,24 @@
                   </div>
                 </div>
               </div>
+            </a-collapse-panel>
+            <a-collapse-panel key="controlnet" header="ControlNet">
+              <div class="uploaded-image" v-if="controlnetImg">
+                <img :src="controlnetImg" />
+                <DeleteFilled @click="deleteImg(true)" />
+              </div>
+              <a-upload-dragger
+                v-else
+                name="file"
+                action=""
+                :showUploadList="false"
+                :customRequest="imgUpload"
+              >
+                <p class="ant-upload-drag-icon">
+                  <UploadOutlined />
+                </p>
+                <p class="ant-upload-text">点击上传或者拖拽文件到此处</p>
+              </a-upload-dragger>
             </a-collapse-panel>
           </a-collapse>
           <div class="generate-div">
@@ -211,8 +229,12 @@ const fileUpload = ({ file }) => {
   })
   // uploadImg.value = URL.createObjectURL(file)
 }
-const deleteImg = () => {
-  uploadImg.value = ''
+const deleteImg = (isControlNet) => {
+  if (isControlNet) {
+    controlnetImg.value = ''
+  } else {
+    uploadImg.value = ''
+  }
 }
 // 是否解析图片信息
 const isAnalysisImg = ref(false)
@@ -260,8 +282,8 @@ const defaultPercent = ref(0)
 // 隐藏高级设置
 const hideAdvanced = ref(true)
 const advancedSetting = reactive({
-  width: '1024',
-  height: '1024',
+  width: '512',
+  height: '512',
   steps: '30',
   seed: ''
 })
@@ -381,6 +403,7 @@ const lorasDesekect = (value) => {
   }
 }
 
+// 主模型相关
 const sdModelsList = ref([])
 const currentModel = ref('')
 const getSdModelsList = () => {
@@ -404,6 +427,13 @@ const modelChange = (modelName) => {
   }).then(() => {
     isChangeMode.value = false
     message.success('model切换成功')
+  })
+}
+
+const controlnetImg = ref('')
+const imgUpload = ({ file }) => {
+  getBase64(file).then((fileBase64) => {
+    controlnetImg.value = fileBase64
   })
 }
 
