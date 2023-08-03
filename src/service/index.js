@@ -81,11 +81,27 @@ export const translate = (params) => {
   })
 }
 
-// 文本翻译
-export const checkControlnet = (params) => {
+// 获取预处理器列表
+export const getModelList = (params) => {
   return axios({
     method: 'post',
-    url: baseUrl + '/checkControlnet',
+    url: baseUrl + '/getModelList',
+    data: params
+  })
+}
+// 获取模型列表
+export const getModuleList = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/getModuleList',
+    data: params
+  })
+}
+// 获取预览图
+export const getDetect = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/getDetect',
     data: params
   })
 }

@@ -35,7 +35,7 @@
                 name="file"
                 action=""
                 :showUploadList="false"
-                :customRequest="fileUpload"
+                :customRequest="imgUpload"
               >
                 <p class="ant-upload-drag-icon">
                   <UploadOutlined />
@@ -65,8 +65,8 @@
                 </p>
                 <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
               </div>
-              <div class="model-select">
-                <p>model</p>
+              <div class="div-select model-select">
+                <p>Stable Diffusion 模型(ckpt)</p>
                 <a-select
                   v-model:value="currentModel"
                   style="width: 100%"
@@ -75,8 +75,8 @@
                   @change="modelChange"
                 />
               </div>
-              <div class="loras-select">
-                <p>loras</p>
+              <div class="div-select loras-select">
+                <p>lora</p>
                 <a-select
                   v-model:value="lorasList"
                   mode="multiple"
@@ -95,41 +95,71 @@
                 </p>
                 <div class="advanced-setting" v-show="!hideAdvanced">
                   <div class="advanced-item">
-                    <p>Width</p>
+                    <p>宽度</p>
                     <input type="text" v-model="advancedSetting.width" />
                   </div>
                   <div class="advanced-item">
-                    <p>Height</p>
+                    <p>高度</p>
                     <input type="text" v-model="advancedSetting.height" />
                   </div>
                   <div class="advanced-item">
-                    <p>Steps</p>
+                    <p>采样迭代步数</p>
                     <input type="text" v-model="advancedSetting.steps" />
                   </div>
                   <div class="advanced-item">
-                    <p>Seed</p>
+                    <p>随机数种子</p>
                     <input type="text" placeholder="auto" v-model="advancedSetting.seed" />
                   </div>
                 </div>
               </div>
             </a-collapse-panel>
             <a-collapse-panel key="controlnet" header="ControlNet">
-              <div class="uploaded-image" v-if="controlnetImg">
+              <div
+                class="uploaded-image"
+                :class="{ 'half-width': allowPreview }"
+                v-if="controlnetImg"
+              >
                 <img :src="controlnetImg" />
                 <DeleteFilled @click="deleteImg(true)" />
               </div>
               <a-upload-dragger
                 v-else
+                :class="{ 'half-width': allowPreview }"
                 name="file"
                 action=""
                 :showUploadList="false"
-                :customRequest="imgUpload"
+                :customRequest="controlnetUpload"
               >
                 <p class="ant-upload-drag-icon">
                   <UploadOutlined />
                 </p>
                 <p class="ant-upload-text">点击上传或者拖拽文件到此处</p>
               </a-upload-dragger>
+              <div class="preview-image" v-if="allowPreview">
+                <a-image :width="100" :height="100" :src="previewImg" alt="预览图" />
+              </div>
+              <a-checkbox v-model:checked="isEnable">启用</a-checkbox>
+              <a-checkbox v-model:checked="allowPreview">允许预览</a-checkbox>
+              <a-checkbox v-model:checked="lowVRAM">低显存优化</a-checkbox>
+              <!-- <a-checkbox v-model:checked="pixelPerfect">像素</a-checkbox> -->
+              <div class="div-select controlnet-module-select">
+                <p>预处理器<span v-show="allowPreview" @click="preview">预览</span></p>
+                <a-select
+                  v-model:value="controlnetModule"
+                  style="width: 100%"
+                  placeholder="请选择"
+                  :options="controlnetModuleList"
+                />
+              </div>
+              <div class="div-select controlnet-model-select">
+                <p>模型</p>
+                <a-select
+                  v-model:value="controlnetModel"
+                  style="width: 100%"
+                  placeholder="请选择"
+                  :options="controlnetModelList"
+                />
+              </div>
             </a-collapse-panel>
           </a-collapse>
           <div class="generate-div">
@@ -180,10 +210,14 @@ import {
   translate,
   getModelsNames,
   getCurrentModel,
-  setCurrentModel
+  setCurrentModel,
+  getModelList,
+  getModuleList,
+  getDetect
   // testApi
 } from '@/service'
 import { message } from 'ant-design-vue'
+import 'ant-design-vue/es/message/style/css'
 import { ref, computed, onMounted, reactive, watch, nextTick } from 'vue'
 import {
   UploadOutlined,
@@ -220,7 +254,7 @@ const translateFn = (isNegative) => {
 }
 const uploadImg = ref('')
 // 上传文件
-const fileUpload = ({ file }) => {
+const imgUpload = ({ file }) => {
   getBase64(file).then((fileBase64) => {
     uploadImg.value = fileBase64
     if (isAnalysisImg.value) {
@@ -431,15 +465,64 @@ const modelChange = (modelName) => {
 }
 
 const controlnetImg = ref('')
-const imgUpload = ({ file }) => {
+const controlnetUpload = ({ file }) => {
   getBase64(file).then((fileBase64) => {
     controlnetImg.value = fileBase64
+  })
+}
+const isEnable = ref(false)
+const allowPreview = ref(false)
+const lowVRAM = ref(false)
+const previewImg = ref('')
+const controlnetModule = ref('none')
+const controlnetModuleList = ref([])
+const controlnetModel = ref('none')
+const controlnetModelList = ref([])
+const getControlnetModuleList = () => {
+  getModuleList().then(({ data }) => {
+    controlnetModuleList.value = data.data.map((item) => {
+      return {
+        label: item,
+        value: item
+      }
+    })
+  })
+}
+const getControlnetModelList = () => {
+  getModelList().then(({ data }) => {
+    controlnetModelList.value = [
+      { label: 'none', value: 'none' },
+      ...data.data.map((item) => {
+        return {
+          label: item,
+          value: item
+        }
+      })
+    ]
+  })
+}
+const preview = () => {
+  if (!controlnetImg.value) {
+    message.error('请先上传图片')
+    return
+  }
+  if (controlnetModule.value === 'none') {
+    message.error('请选择预处理器')
+    return
+  }
+  getDetect({
+    module: controlnetModule.value,
+    images: controlnetImg.value
+  }).then(({ data }) => {
+    previewImg.value = 'data:image/png;base64,' + data.data
   })
 }
 
 onMounted(() => {
   getLorasList()
   getSdModelsList()
+  getControlnetModuleList()
+  getControlnetModelList()
   nextTick(() => {
     computedStyleFn()
   })
@@ -484,6 +567,7 @@ body,
               border-top: none;
               .ant-collapse-content-box {
                 padding: 12px;
+                position: relative;
                 background: #001529;
                 .translate-btn {
                   position: absolute;
@@ -531,6 +615,7 @@ body,
                 .ant-checkbox-wrapper {
                   margin-top: 8px;
                   color: #ffffff;
+                  user-select: none;
                 }
                 // 图片比例
                 .pic-scale {
@@ -556,8 +641,7 @@ body,
                     }
                   }
                 }
-                .model-select,
-                .loras-select {
+                .div-select {
                   padding: 12px;
                   p {
                     color: #ffffff;
@@ -599,6 +683,30 @@ body,
                           border: 1px solid rgb(229, 231, 235);
                         }
                       }
+                    }
+                  }
+                }
+
+                .half-width {
+                  width: 50%;
+                }
+                .preview-image {
+                  top: 12px;
+                  display: flex;
+                  right: 12px;
+                  height: 128px;
+                  position: absolute;
+                  left: calc(50% + 8px);
+                  background-color: #ffffff;
+                  justify-content: center;
+                  align-items: center;
+                }
+                .controlnet-module-select {
+                  p {
+                    position: relative;
+                    span {
+                      float: right;
+                      cursor: pointer;
                     }
                   }
                 }
