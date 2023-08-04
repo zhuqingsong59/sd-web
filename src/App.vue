@@ -138,7 +138,7 @@
               <div class="preview-image" v-if="allowPreview">
                 <a-image :width="100" :height="100" :src="previewImg" alt="预览图" />
               </div>
-              <a-checkbox v-model:checked="isEnable">启用</a-checkbox>
+              <a-checkbox v-model:checked="controlnetEnable">启用</a-checkbox>
               <a-checkbox v-model:checked="allowPreview">允许预览</a-checkbox>
               <a-checkbox v-model:checked="lowVRAM">低显存优化</a-checkbox>
               <!-- <a-checkbox v-model:checked="pixelPerfect">像素</a-checkbox> -->
@@ -223,8 +223,21 @@
                   :max="2"
                 />
               </div>
-              <div>
-                <p></p>
+              <div class="div-radio">
+                <p>control model</p>
+                <a-radio-group v-model:value="controlModel">
+                  <a-radio :value="0">均衡</a-radio>
+                  <a-radio :value="1">注重提示词</a-radio>
+                  <a-radio :value="2">注重ControlNet</a-radio>
+                </a-radio-group>
+              </div>
+              <div class="div-radio">
+                <p>图片缩放模式</p>
+                <a-radio-group v-model:value="resizeMode">
+                  <a-radio value="Just Resize">拉升</a-radio>
+                  <a-radio value="Crop and Resize">裁剪</a-radio>
+                  <a-radio value="Resize and Fill">填充</a-radio>
+                </a-radio-group>
               </div>
             </a-collapse-panel>
           </a-collapse>
@@ -293,7 +306,7 @@ import {
 } from '@ant-design/icons-vue'
 const activeKey = ref(['controlnet'])
 // 关键词
-const prompt = ref('beaty，young，glasses，sexy')
+const prompt = ref('photo of a beautiful girl')
 // 反向关键词
 const negativePrompt = ref('')
 // 图片文件转为base64
@@ -438,6 +451,20 @@ const loopProgress = (taskId) => {
   })
 }
 const generate = () => {
+  if (controlnetEnable.value) {
+    if (!controlnetImg.value) {
+      message.error('请先上传图片')
+      return
+    }
+    if (controlnetModule.value === 'none') {
+      message.error('请选择预处理器')
+      return
+    }
+    if (controlnetModel.value === 'none') {
+      message.error('请选择模型')
+      return
+    }
+  }
   const generateFn = uploadImg.value ? img2img : txt2img
   const generateParams = {
     steps: advancedSetting.steps,
@@ -449,6 +476,19 @@ const generate = () => {
   }
   if (uploadImg.value) {
     generateParams.images = uploadImg.value
+  }
+  if (controlnetEnable.value) {
+    generateParams.controlnet_units = {
+      input_image: controlnetImg.value,
+      module: controlnetModule.value,
+      model: controlnetModel.value,
+      weight: controlWeight.value,
+      lowvram: lowVRAM.value,
+      guidance_start: startingStep.value,
+      guidance_end: endingStep.value,
+      control_mode: controlModel.value,
+      resize_mode: resizeMode.value
+    }
   }
   generateFn(generateParams).then(({ data }) => {
     defaultPercent.value = 0
@@ -536,7 +576,7 @@ const controlnetUpload = ({ file }) => {
     controlnetImg.value = fileBase64
   })
 }
-const isEnable = ref(false)
+const controlnetEnable = ref(true)
 const allowPreview = ref(false)
 const lowVRAM = ref(false)
 const previewImg = ref('')
@@ -587,6 +627,8 @@ const preview = () => {
 const controlWeight = ref(1)
 const startingStep = ref(0)
 const endingStep = ref(1)
+const controlModel = ref(0)
+const resizeMode = ref('Just Resize')
 
 onMounted(() => {
   getLorasList()
@@ -642,7 +684,7 @@ body,
                 .translate-btn {
                   position: absolute;
                   color: #ffffff;
-                  top: 12px;
+                  top: -35px;
                   right: 16px;
                   height: 22px;
                   padding: 0;
@@ -711,6 +753,13 @@ body,
                       float: right;
                       cursor: pointer;
                     }
+                  }
+                }
+                .div-radio {
+                  padding: 12px;
+                  p,
+                  .ant-radio-wrapper {
+                    color: #ffffff;
                   }
                 }
                 // 高级设置
