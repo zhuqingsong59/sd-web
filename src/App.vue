@@ -47,9 +47,9 @@
               >
             </a-collapse-panel>
             <a-collapse-panel key="setting" header="设置">
-              <div class="pic-scale">
+              <div class="div-slider">
                 <p>
-                  图片比例<span>{{ scaleList[picScale - 1].scale }}</span>
+                  图片比例<span class="center">{{ scaleList[picScale - 1].scale }}</span>
                 </p>
                 <a-slider
                   v-model:value="picScale"
@@ -59,13 +59,13 @@
                   @change="scaleChange"
                 />
               </div>
-              <div class="batch-size">
+              <div class="div-slider">
                 <p>
-                  图片数量<span>{{ batchSize }}</span>
+                  图片数量<span class="right">{{ batchSize }}</span>
                 </p>
                 <a-slider v-model:value="batchSize" :tooltipVisible="false" :min="1" :max="10" />
               </div>
-              <div class="div-select model-select">
+              <div class="div-select">
                 <p>Stable Diffusion 模型(ckpt)</p>
                 <a-select
                   v-model:value="currentModel"
@@ -75,7 +75,7 @@
                   @change="modelChange"
                 />
               </div>
-              <div class="div-select loras-select">
+              <div class="div-select">
                 <p>lora</p>
                 <a-select
                   v-model:value="lorasList"
@@ -142,7 +142,7 @@
               <a-checkbox v-model:checked="allowPreview">允许预览</a-checkbox>
               <a-checkbox v-model:checked="lowVRAM">低显存优化</a-checkbox>
               <!-- <a-checkbox v-model:checked="pixelPerfect">像素</a-checkbox> -->
-              <div class="div-select controlnet-module-select">
+              <div class="div-select">
                 <p>预处理器<span v-show="allowPreview" @click="preview">预览</span></p>
                 <a-select
                   v-model:value="controlnetModule"
@@ -159,6 +159,72 @@
                   placeholder="请选择"
                   :options="controlnetModelList"
                 />
+              </div>
+              <div class="div-slider">
+                <p>
+                  控制权重
+                  <span class="right">
+                    <a-input-number
+                      size="small"
+                      v-model:value="controlWeight"
+                      :min="0"
+                      :max="2"
+                      :step="0.01"
+                    />
+                  </span>
+                </p>
+                <a-slider
+                  v-model:value="controlWeight"
+                  :step="0.01"
+                  :tooltipVisible="false"
+                  :min="0"
+                  :max="2"
+                />
+              </div>
+              <div class="div-slider">
+                <p>
+                  起始步数
+                  <span class="right">
+                    <a-input-number
+                      size="small"
+                      v-model:value="startingStep"
+                      :min="0"
+                      :max="2"
+                      :step="0.01"
+                    />
+                  </span>
+                </p>
+                <a-slider
+                  v-model:value="startingStep"
+                  :step="0.01"
+                  :tooltipVisible="false"
+                  :min="0"
+                  :max="2"
+                />
+              </div>
+              <div class="div-slider">
+                <p>
+                  完结步数
+                  <span class="right">
+                    <a-input-number
+                      size="small"
+                      v-model:value="endingStep"
+                      :min="0"
+                      :max="2"
+                      :step="0.01"
+                    />
+                  </span>
+                </p>
+                <a-slider
+                  v-model:value="endingStep"
+                  :step="0.01"
+                  :tooltipVisible="false"
+                  :min="0"
+                  :max="2"
+                />
+              </div>
+              <div>
+                <p></p>
               </div>
             </a-collapse-panel>
           </a-collapse>
@@ -225,7 +291,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
-const activeKey = ref(['prompt', 'setting'])
+const activeKey = ref(['controlnet'])
 // 关键词
 const prompt = ref('beaty，young，glasses，sexy')
 // 反向关键词
@@ -518,6 +584,10 @@ const preview = () => {
   })
 }
 
+const controlWeight = ref(1)
+const startingStep = ref(0)
+const endingStep = ref(1)
+
 onMounted(() => {
   getLorasList()
   getSdModelsList()
@@ -617,25 +687,17 @@ body,
                   color: #ffffff;
                   user-select: none;
                 }
-                // 图片比例
-                .pic-scale {
+                .div-slider {
                   padding: 12px;
                   p {
-                    position: relative;
                     color: #ffffff;
-                    span {
+                    position: relative;
+                    .center {
                       position: absolute;
                       left: 50%;
                       transform: translateX(-50%);
                     }
-                  }
-                }
-                // 图片数量
-                .batch-size {
-                  padding: 12px;
-                  p {
-                    color: #ffffff;
-                    span {
+                    .right {
                       float: right;
                       margin-right: 12px;
                     }
@@ -645,6 +707,10 @@ body,
                   padding: 12px;
                   p {
                     color: #ffffff;
+                    span {
+                      float: right;
+                      cursor: pointer;
+                    }
                   }
                 }
                 // 高级设置
@@ -700,15 +766,6 @@ body,
                   background-color: #ffffff;
                   justify-content: center;
                   align-items: center;
-                }
-                .controlnet-module-select {
-                  p {
-                    position: relative;
-                    span {
-                      float: right;
-                      cursor: pointer;
-                    }
-                  }
                 }
               }
             }
