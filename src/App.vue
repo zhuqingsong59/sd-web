@@ -120,7 +120,7 @@
                 v-if="controlnetImg"
               >
                 <img :src="controlnetImg" />
-                <DeleteFilled @click="deleteImg(true)" />
+                <DeleteFilled @click="deleteControlnetImg" />
               </div>
               <a-upload-dragger
                 v-else
@@ -224,7 +224,7 @@
                 />
               </div>
               <div class="div-radio">
-                <p>control model</p>
+                <p>控制模式</p>
                 <a-radio-group v-model:value="controlModel">
                   <a-radio :value="0">均衡</a-radio>
                   <a-radio :value="1">注重提示词</a-radio>
@@ -272,6 +272,11 @@
                 <img src="@/assets/logo.png" alt="" />
               </a-spin>
             </div>
+            <div class="pic-operate" v-show="img.imgSrc">
+              <PictureOutlined @click="setImg(img.imgSrc)" />
+              <EditOutlined />
+              <DownloadOutlined @click="download(img.imgSrc)" />
+            </div>
           </div>
         </div>
       </a-layout-content>
@@ -299,14 +304,17 @@ import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style/css'
 import { ref, computed, onMounted, reactive, watch, nextTick } from 'vue'
 import {
-  UploadOutlined,
-  DeleteFilled,
   EyeOutlined,
+  DeleteFilled,
+  EditOutlined,
+  UploadOutlined,
+  PictureOutlined,
+  DownloadOutlined,
   EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
-const activeKey = ref(['controlnet'])
+const activeKey = ref(['prompt'])
 // 关键词
-const prompt = ref('photo of a beautiful girl')
+const prompt = ref('beaty，young，glasses，sexy')
 // 反向关键词
 const negativePrompt = ref('')
 // 图片文件转为base64
@@ -342,12 +350,8 @@ const imgUpload = ({ file }) => {
   })
   // uploadImg.value = URL.createObjectURL(file)
 }
-const deleteImg = (isControlNet) => {
-  if (isControlNet) {
-    controlnetImg.value = ''
-  } else {
-    uploadImg.value = ''
-  }
+const deleteImg = () => {
+  uploadImg.value = ''
 }
 // 是否解析图片信息
 const isAnalysisImg = ref(false)
@@ -421,7 +425,7 @@ const computedStyleFn = () => {
   computedStyle.value = { height: height + 'px' }
 }
 // 图片地址列表
-const srcList = ref([])
+const srcList = ref(['/api/static/20230808140107_0.png'])
 // 展示图片列表
 const showPicList = computed(() => {
   let list = []
@@ -576,7 +580,10 @@ const controlnetUpload = ({ file }) => {
     controlnetImg.value = fileBase64
   })
 }
-const controlnetEnable = ref(true)
+const deleteControlnetImg = () => {
+  controlnetImg.value = ''
+}
+const controlnetEnable = ref(false)
 const allowPreview = ref(false)
 const lowVRAM = ref(false)
 const previewImg = ref('')
@@ -640,6 +647,47 @@ onMounted(() => {
   })
 })
 
+const setImg = (url) => {
+  fetch(url)
+    .then((r) => r.blob())
+    .then((blob) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(blob)
+      reader.onloadend = () => {
+        uploadImg.value = reader.result
+        if (!activeKey.value.includes('uploadImage')) {
+          activeKey.value = [...activeKey.value, 'uploadImage']
+        }
+      }
+    })
+}
+const download = (url) => {
+  fetch(url)
+    .then((r) => r.blob())
+    .then((blob) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(blob)
+      reader.onloadend = () => {
+        const imgUrl = reader.result
+        if (window.navigator.msSaveOrOpenBlob) {
+          var bstr = atob(imgUrl.split(',')[1])
+          var n = bstr.length
+          var u8arr = new Uint8Array(n)
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n)
+          }
+          var blob = new Blob([u8arr])
+          window.navigator.msSaveOrOpenBlob(blob, 'download' + '.' + 'png')
+        } else {
+          // 这里就按照chrome等新版浏览器来处理
+          const a = document.createElement('a')
+          a.href = imgUrl
+          a.setAttribute('download', 'download')
+          a.click()
+        }
+      }
+    })
+}
 // const testFn = () => {
 //   testApi().then(({ data }) => {
 //     console.log('data: ', data)
@@ -834,9 +882,11 @@ body,
         .show-item {
           float: left;
           height: 512px;
+          position: relative;
           background: #ffffff;
           margin-top: 8px;
           margin-right: 8px;
+          padding: 8px;
           border-radius: 0.375rem;
           width: calc((100% - 24px) / 4);
           --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -853,6 +903,27 @@ body,
             display: flex;
             align-items: center;
             justify-content: center;
+          }
+          .ant-image {
+            width: 100%;
+            height: 100%;
+          }
+          .pic-operate {
+            top: 8px;
+            right: 8px;
+            color: #ffffff;
+            position: absolute;
+            span {
+              margin-left: 12px;
+              font-size: 18px;
+              cursor: pointer;
+              opacity: 0;
+            }
+          }
+          &:hover {
+            .pic-operate span {
+              opacity: 1;
+            }
           }
         }
       }
