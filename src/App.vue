@@ -274,11 +274,14 @@
             </div>
             <div class="pic-operate" v-show="img.imgSrc">
               <PictureOutlined @click="setImg(img.imgSrc)" />
-              <EditOutlined />
+              <EditOutlined @click="editImg(img.imgSrc)" />
               <DownloadOutlined @click="download(img.imgSrc)" />
             </div>
           </div>
         </div>
+        <a-modal v-model:visible="modalVisible" :width="560" title="图片绘制" @ok="ok">
+          <canvas id="modalCanvas"></canvas>
+        </a-modal>
       </a-layout-content>
     </a-layout>
   </a-layout>
@@ -687,6 +690,63 @@ const download = (url) => {
         }
       }
     })
+}
+const modalVisible = ref(false)
+let canvas
+const editImg = (url) => {
+  modalVisible.value = true
+  nextTick(() => {
+    canvas = document.getElementById('modalCanvas')
+    canvas.width = advancedSetting.width
+    canvas.height = advancedSetting.height
+    let ctx = canvas.getContext('2d')
+    let img = new Image()
+    let isDrawing = false
+    let lastX = 0
+    let lastY = 0
+    canvas.addEventListener('mousedown', function (e) {
+      isDrawing = true
+      ;[lastX, lastY] = [e.offsetX, e.offsetY]
+    })
+
+    canvas.addEventListener('mouseleave', function () {
+      isDrawing = false
+    })
+
+    canvas.addEventListener('mousemove', function (e) {
+      if (isDrawing) {
+        ctx.beginPath()
+        ctx.moveTo(lastX, lastY)
+        ctx.lineTo(e.offsetX, e.offsetY)
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = 20
+        ctx.lineJoin = 'round'
+        ctx.lineCap = 'round'
+        ctx.stroke()
+        ;[lastX, lastY] = [e.offsetX, e.offsetY]
+      }
+    })
+
+    canvas.addEventListener('mouseup', function () {
+      isDrawing = false
+    })
+    img.onload = function () {
+      ctx.drawImage(img, 0, 0)
+    }
+    img.src = url
+  })
+}
+const ok = () => {
+  let dataURL = canvas.toDataURL('image/png')
+  if (!uploadImg.value) {
+    uploadImg.value = dataURL
+    if (!activeKey.value.includes('uploadImage')) {
+      activeKey.value = [...activeKey.value, 'uploadImage']
+    }
+  } else {
+    console.log(22)
+  }
+  modalVisible.value = false
 }
 // const testFn = () => {
 //   testApi().then(({ data }) => {
