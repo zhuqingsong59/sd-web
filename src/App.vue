@@ -738,13 +738,9 @@ const editImg = (url) => {
 }
 const ok = () => {
   let dataURL = canvas.toDataURL('image/png')
-  if (!uploadImg.value) {
-    uploadImg.value = dataURL
-    if (!activeKey.value.includes('uploadImage')) {
-      activeKey.value = [...activeKey.value, 'uploadImage']
-    }
-  } else {
-    console.log(22)
+  uploadImg.value = dataURL
+  if (!activeKey.value.includes('uploadImage')) {
+    activeKey.value = [...activeKey.value, 'uploadImage']
   }
   modalVisible.value = false
 }
