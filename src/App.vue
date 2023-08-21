@@ -428,7 +428,7 @@ const computedStyleFn = () => {
   computedStyle.value = { height: height + 'px' }
 }
 // 图片地址列表
-const srcList = ref(['/api/static/20230808140107_0.png'])
+const srcList = ref([])
 // 展示图片列表
 const showPicList = computed(() => {
   let list = []
