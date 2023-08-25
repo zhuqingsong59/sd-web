@@ -30,6 +30,7 @@
     <div class="result-image">
       <div>
         <img :src="segmentImg" />
+        <canvas id="segmentCanvas"></canvas>
       </div>
       <a-button type="primary" style="margin-top: 16px" block>获取</a-button>
       <div></div>
@@ -62,7 +63,6 @@ const imgUpload = ({ file }) => {
 const segmentImg = ref('')
 const createFn = () => {
   segment({ images: sourceImg.value }).then(({ data }) => {
-    console.log(data)
     segmentImg.value = '/api' + data.data
   })
 }
