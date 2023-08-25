@@ -250,6 +250,9 @@
             >
               生成
             </a-button>
+            <a-button type="primary" style="margin-top: 16px" block @click="creatMask">
+              创建遮罩
+            </a-button>
             <!-- <a-button type="primary" style="margin-top: 16px" block @click="testFn">
               测试
             </a-button> -->
@@ -282,6 +285,7 @@
         <a-modal v-model:visible="modalVisible" :width="560" title="图片绘制" @ok="ok">
           <canvas id="modalCanvas"></canvas>
         </a-modal>
+        <maskDialog ref="maskDialogRef" />
       </a-layout-content>
     </a-layout>
   </a-layout>
@@ -305,6 +309,7 @@ import {
 } from '@/service'
 import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style/css'
+import maskDialog from './components/maskDialog.vue'
 import { ref, computed, onMounted, reactive, watch, nextTick } from 'vue'
 import {
   EyeOutlined,
@@ -749,6 +754,10 @@ const ok = () => {
 //     console.log('data: ', data)
 //   })
 // }
+const maskDialogRef = ref()
+const creatMask = () => {
+  maskDialogRef.value.show()
+}
 </script>
 
 <style lang="scss">
@@ -818,7 +827,6 @@ body,
                   border: 1px dashed #322f2f;
                   img {
                     width: 100px;
-                    height: 100px;
                   }
                   .anticon-delete {
                     top: 8px;

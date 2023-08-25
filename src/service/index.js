@@ -105,3 +105,11 @@ export const getDetect = (params) => {
     data: params
   })
 }
+// 获取预览图
+export const segment = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/segment',
+    data: params
+  })
+}
