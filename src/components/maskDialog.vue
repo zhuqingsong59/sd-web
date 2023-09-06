@@ -90,7 +90,7 @@ const segmentImgLoaded = () => {
       ctx.moveTo(lastX, lastY)
       ctx.lineTo(e.offsetX, e.offsetY)
       ctx.strokeStyle = '#000000'
-      ctx.lineWidth = 5
+      ctx.lineWidth = 2
       ctx.lineJoin = 'round'
       ctx.lineCap = 'round'
       ctx.stroke()
