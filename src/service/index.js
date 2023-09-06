@@ -113,3 +113,11 @@ export const segment = (params) => {
     data: params
   })
 }
+// 获取覆盖图
+export const mask = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/mask',
+    data: params
+  })
+}
