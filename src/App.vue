@@ -136,7 +136,13 @@
                 <p class="ant-upload-text">点击上传或者拖拽文件到此处</p>
               </a-upload-dragger>
               <div class="preview-image" v-if="allowPreview">
-                <a-image :width="100" :height="100" :src="previewImg" alt="预览图" />
+                <a-image :src="previewImg" alt="预览图" />
+                <p
+                  v-if="previewImg && controlnetModule && controlnetModule.includes('openpose')"
+                  @click="poseEdit"
+                >
+                  编辑
+                </p>
               </div>
               <a-checkbox v-model:checked="controlnetEnable">启用</a-checkbox>
               <a-checkbox v-model:checked="allowPreview">允许预览</a-checkbox>
@@ -286,6 +292,7 @@
           <canvas id="modalCanvas"></canvas>
         </a-modal>
         <maskDialog ref="maskDialogRef" />
+        <openposeDialog ref="openposeDialogRef" />
       </a-layout-content>
     </a-layout>
   </a-layout>
@@ -310,6 +317,7 @@ import {
 import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style/css'
 import maskDialog from './components/maskDialog.vue'
+import openposeDialog from './components/openposeDialog.vue'
 import { ref, computed, onMounted, reactive, watch, nextTick } from 'vue'
 import {
   EyeOutlined,
@@ -622,6 +630,7 @@ const getControlnetModelList = () => {
     ]
   })
 }
+let poses = []
 const preview = () => {
   if (!controlnetImg.value) {
     message.error('请先上传图片')
@@ -635,7 +644,8 @@ const preview = () => {
     module: controlnetModule.value,
     images: controlnetImg.value
   }).then(({ data }) => {
-    previewImg.value = 'data:image/png;base64,' + data.data
+    previewImg.value = 'data:image/png;base64,' + data.data.image
+    poses = data.data.poses
   })
 }
 
@@ -758,6 +768,16 @@ const maskDialogRef = ref()
 const creatMask = () => {
   maskDialogRef.value.show()
 }
+
+const openposeDialogRef = ref()
+const poseEdit = () => {
+  let poseURL = btoa(JSON.stringify(poses[0]))
+  openposeDialogRef.value.show({
+    modalId: '0',
+    imageURL: controlnetImg.value,
+    poseURL: 'data:application/json;base64,' + poseURL
+  })
+}
 </script>
 
 <style lang="scss">
@@ -826,7 +846,7 @@ body,
                   text-align: center;
                   border: 1px dashed #322f2f;
                   img {
-                    width: 100px;
+                    height: 100px;
                   }
                   .anticon-delete {
                     top: 8px;
@@ -916,6 +936,7 @@ body,
 
                 .half-width {
                   width: 50%;
+                  height: 128px;
                 }
                 .preview-image {
                   top: 12px;
@@ -927,6 +948,21 @@ body,
                   background-color: #ffffff;
                   justify-content: center;
                   align-items: center;
+                  .ant-image {
+                    height: 100%;
+                    .ant-image-img {
+                      height: 100%;
+                      width: auto;
+                    }
+                  }
+                  p {
+                    top: 0;
+                    margin: 0;
+                    right: 8px;
+                    cursor: pointer;
+                    position: absolute;
+                    border: 1px solid #999999;
+                  }
                 }
               }
             }
