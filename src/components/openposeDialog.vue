@@ -6,7 +6,7 @@
     class="openpose-dialog"
     @ok="handleOk"
   >
-    <iframe :src="iframeSrc" frameborder="0" ref="iframeRef"></iframe>
+    <iframe :src="iframeSrc" frameborder="0" ref="iframeRef" @load="iframeLoaded"></iframe>
   </a-modal>
 </template>
 <script setup>
@@ -17,17 +17,17 @@ const visible = ref(false)
 const iframeSrc = ref('')
 const iframeRef = ref()
 const handleOk = () => {}
-
+let messageOption
 defineExpose({
   show: (option) => {
     visible.value = true
-    iframeSrc.value = 'http://127.0.0.1:7860/openpose_editor_index'
-    setTimeout(() => {
-      iframeRef.value.contentWindow.postMessage(option, '*')
-      //   iframeRef.value.contentWindow.focus()
-    }, 1000)
+    messageOption = option
+    iframeSrc.value = 'http://localhost:5173/'
   }
 })
+const iframeLoaded = () => {
+  iframeRef.value.contentWindow.postMessage(messageOption, '*')
+}
 
 useEventListener(window, 'message', (evt) => {
   const message = evt.data
