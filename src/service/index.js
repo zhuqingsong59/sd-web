@@ -1,5 +1,5 @@
 import axios from 'axios'
-const baseUrl = '/api'
+const baseUrl = import.meta.env.VITE_SERVER_URL || '/api'
 // 测试接口返回数据专用
 export const testApi = (params) => {
   return axios({

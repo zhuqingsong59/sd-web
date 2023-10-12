@@ -462,7 +462,9 @@ const loopProgress = (taskId) => {
     defaultPercent.value = Number((Number(data.data.progress || 0) * 100).toFixed(0))
     if (defaultPercent.value == 100) {
       isGenerating.value = false
-      srcList.value = data.data.urlList.map((item) => '/api' + item)
+      srcList.value = data.data.urlList.map(
+        (item) => (import.meta.env.MODE === 'development' ? '/api' : '') + item
+      )
       return
     }
     setTimeout(() => {
