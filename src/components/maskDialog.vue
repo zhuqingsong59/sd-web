@@ -67,7 +67,7 @@ const segmentImg = ref('')
 const segmentImgRef = ref()
 const createFn = () => {
   segment({ images: sourceImg.value }).then(({ data }) => {
-    segmentImg.value = '/api' + data.data
+    segmentImg.value = (import.meta.env.MODE === 'development' ? '/api' : '') + data.data
   })
 }
 
@@ -145,7 +145,7 @@ const getFn = () => {
     images: sourceImg.value,
     sketch_image: scaledCanvas.toDataURL('image/png')
   }).then(({ data }) => {
-    resultImg.value = '/api' + data.data
+    resultImg.value = (import.meta.env.MODE === 'development' ? '/api' : '') + data.data
   })
 }
 const handleOk = () => {}
