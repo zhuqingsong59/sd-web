@@ -67,12 +67,23 @@
               </div>
               <div class="div-select">
                 <p>Stable Diffusion 模型(ckpt)</p>
+                <a-spin :spinning="isChangeMode" :indicator="indicator">
+                  <a-select
+                    v-model:value="currentModel"
+                    style="width: 100%"
+                    placeholder="请选择"
+                    :options="sdModelsList"
+                    @change="modelChange"
+                  />
+                </a-spin>
+              </div>
+              <div class="div-select">
+                <p>采样方法</p>
                 <a-select
-                  v-model:value="currentModel"
+                  v-model:value="currentSampler"
                   style="width: 100%"
                   placeholder="请选择"
-                  :options="sdModelsList"
-                  @change="modelChange"
+                  :options="samplerOptionList"
                 />
               </div>
               <div class="div-select">
@@ -88,9 +99,9 @@
                 />
               </div>
               <div class="advanced">
-                <p>
-                  <EyeOutlined v-if="hideAdvanced" @click="hideAdvanced = !hideAdvanced" />
-                  <EyeInvisibleOutlined v-else @click="hideAdvanced = !hideAdvanced" />
+                <p @click="hideAdvanced = !hideAdvanced">
+                  <EyeOutlined v-if="hideAdvanced" />
+                  <EyeInvisibleOutlined v-else />
                   高级设置
                 </p>
                 <div class="advanced-setting" v-show="!hideAdvanced">
@@ -266,6 +277,7 @@
         </div>
       </a-layout-sider>
       <a-layout-content>
+        <maskImg />
         <div class="show-content">
           <div
             v-for="(img, index) in showPicList"
@@ -316,18 +328,28 @@ import {
 } from '@/service'
 import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style/css'
-import maskDialog from './components/maskDialog.vue'
+import maskImg from '@/components/maskImg.vue'
+import maskDialog from '@/components/maskDialog.vue'
 import openposeDialog from './components/openposeDialog.vue'
-import { ref, computed, onMounted, reactive, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, reactive, watch, nextTick, h } from 'vue'
 import {
   EyeOutlined,
   DeleteFilled,
   EditOutlined,
   UploadOutlined,
   PictureOutlined,
+  LoadingOutlined,
   DownloadOutlined,
   EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
+
+const indicator = h(LoadingOutlined, {
+  style: {
+    fontSize: '24px'
+  },
+  spin: true
+})
+
 const activeKey = ref(['prompt'])
 // 关键词
 const prompt = ref('beaty，young，glasses，sexy')
@@ -453,6 +475,47 @@ const showPicList = computed(() => {
   return list
 })
 
+const samplerList = [
+  'DPM++ 2M Karras',
+  'DPM++ SDE Karras',
+  'DPM++ 2M SDE Exponential',
+  'DPM++ 2M SDE Karras',
+  'Euler a',
+  'Euler',
+  'LMS',
+  'Heun',
+  'DPM2',
+  'DPM2 a',
+  'DPM++ 2S a',
+  'DPM++ 2M',
+  'DPM++ SDE',
+  'DPM++ 2M SDE',
+  'DPM++ 2M SDE Heun',
+  'DPM++ 2M SDE Heun Karras',
+  'DPM++ 2M SDE Heun Exponential',
+  'DPM++ 3M SDE',
+  'DPM++ 3M SDE Karras',
+  'DPM++ 3M SDE Exponential',
+  'DPM fast',
+  'DPM adaptive',
+  'LMS Karras',
+  'DPM2 Karras',
+  'DPM2 a Karras',
+  'DPM++ 2S a Karras',
+  'Restart',
+  'DDIM',
+  'PLMS',
+  'UniPC'
+]
+const currentSampler = ref('Euler a')
+const samplerOptionList = computed(() => {
+  return samplerList.map((item) => {
+    return {
+      label: item,
+      value: item
+    }
+  })
+})
 // 循环获取生成进度
 const loopProgress = (taskId) => {
   isGenerating.value = true
@@ -487,12 +550,14 @@ const generate = () => {
       return
     }
   }
+  srcList.value = []
   const generateFn = uploadImg.value ? img2img : txt2img
   const generateParams = {
     steps: advancedSetting.steps,
     width: advancedSetting.width,
     height: advancedSetting.height,
     prompt: prompt.value,
+    sampler_name: currentSampler.value,
     negative_prompt: negativePrompt.value,
     batch_size: batchSize.value
   }
@@ -611,12 +676,15 @@ const controlnetModel = ref('none')
 const controlnetModelList = ref([])
 const getControlnetModuleList = () => {
   getModuleList().then(({ data }) => {
-    controlnetModuleList.value = data.data.map((item) => {
-      return {
-        label: item,
-        value: item
-      }
-    })
+    const fixedList = ['none', 'canny', 'inpaint_only', 'lineart', 'openpose']
+    controlnetModuleList.value = data.data
+      .filter((item) => fixedList.some((fixItem) => item.includes(fixItem)))
+      .map((item) => {
+        return {
+          label: item,
+          value: item
+        }
+      })
   })
 }
 const getControlnetModelList = () => {
@@ -888,6 +956,9 @@ body,
                       cursor: pointer;
                     }
                   }
+                  .ant-spin-nested-loading {
+                    background-color: #ffffff;
+                  }
                 }
                 .div-radio {
                   padding: 12px;
@@ -900,9 +971,11 @@ body,
                 .advanced {
                   padding: 12px;
                   p {
+                    cursor: pointer;
                     color: #ffffff;
                     margin-bottom: 0;
                     user-select: none;
+                    display: inline-block;
                   }
                   .advanced-setting {
                     padding: 12px 0;
@@ -979,7 +1052,8 @@ body,
       padding: 12px;
       .show-content {
         width: 100%;
-        height: 100%;
+        // height: 100%
+        height: calc(100% - 200px);
         overflow: auto;
         .show-item {
           float: left;
