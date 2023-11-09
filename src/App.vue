@@ -14,17 +14,6 @@
                 :autoSize="{ minRows: 4 }"
               />
             </a-collapse-panel>
-            <a-collapse-panel key="negativePrompt" header="反向提示词">
-              <a-button class="translate-btn" type="text" @click="translateFn(true)">
-                一键翻译
-              </a-button>
-              <a-textarea
-                v-model:value="negativePrompt"
-                placeholder="反向提示词，请输入英文，或者输入中文后点击一键翻译"
-                :autoSize="{ minRows: 4 }"
-                allow-clear
-              />
-            </a-collapse-panel>
             <a-collapse-panel key="uploadImage" header="上传图片">
               <div class="uploaded-image" v-if="uploadImg">
                 <img :src="uploadImg" />
@@ -42,9 +31,21 @@
                 </p>
                 <p class="ant-upload-text">点击上传或者拖拽文件到此处</p>
               </a-upload-dragger>
-              <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange"
-                >解析图片信息</a-checkbox
-              >
+              <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange">
+                解析图片信息
+              </a-checkbox>
+              <a-checkbox v-model:checked="isMaskImg" @change="maskChange"> 图片选区 </a-checkbox>
+            </a-collapse-panel>
+            <a-collapse-panel key="negativePrompt" header="反向提示词">
+              <a-button class="translate-btn" type="text" @click="translateFn(true)">
+                一键翻译
+              </a-button>
+              <a-textarea
+                v-model:value="negativePrompt"
+                placeholder="反向提示词，请输入英文，或者输入中文后点击一键翻译"
+                :autoSize="{ minRows: 4 }"
+                allow-clear
+              />
             </a-collapse-panel>
             <a-collapse-panel key="setting" header="设置">
               <div class="div-slider">
@@ -277,7 +278,6 @@
         </div>
       </a-layout-sider>
       <a-layout-content>
-        <maskImg />
         <div class="show-content">
           <div
             v-for="(img, index) in showPicList"
@@ -303,6 +303,7 @@
         <a-modal v-model:visible="modalVisible" :width="560" title="图片绘制" @ok="ok">
           <canvas id="modalCanvas"></canvas>
         </a-modal>
+        <setMaskDialog ref="setMaskDialogRef" />
         <maskDialog ref="maskDialogRef" />
         <openposeDialog ref="openposeDialogRef" />
       </a-layout-content>
@@ -328,8 +329,8 @@ import {
 } from '@/service'
 import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style/css'
-import maskImg from '@/components/maskImg.vue'
 import maskDialog from '@/components/maskDialog.vue'
+import setMaskDialog from './components/setMaskDialog.vue'
 import openposeDialog from './components/openposeDialog.vue'
 import { ref, computed, onMounted, reactive, watch, nextTick, h } from 'vue'
 import {
@@ -350,7 +351,7 @@ const indicator = h(LoadingOutlined, {
   spin: true
 })
 
-const activeKey = ref(['prompt'])
+const activeKey = ref(['prompt', 'uploadImage'])
 // 关键词
 const prompt = ref('beaty，young，glasses，sexy')
 // 反向关键词
@@ -406,6 +407,18 @@ const analysisImg = () => {
 const analysisChange = () => {
   if (isAnalysisImg.value && uploadImg.value) {
     analysisImg()
+  }
+}
+
+const isMaskImg = ref(false)
+const setMaskDialogRef = ref(null)
+const maskChange = () => {
+  if (isMaskImg.value && !uploadImg.value) {
+    isMaskImg.value = false
+    return
+  }
+  if (isMaskImg.value) {
+    setMaskDialogRef.value.show()
   }
 }
 
@@ -1052,8 +1065,7 @@ body,
       padding: 12px;
       .show-content {
         width: 100%;
-        // height: 100%
-        height: calc(100% - 200px);
+        height: 100%;
         overflow: auto;
         .show-item {
           float: left;

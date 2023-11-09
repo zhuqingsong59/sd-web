@@ -1,17 +1,36 @@
 <template>
-  <div class="mask-img" @mousemove="handleMouseMove($event)">
-    <img :src="image && image.src" />
-    <img v-if="maskImage" class="mask-image" :src="maskImage.src" />
-  </div>
+  <a-modal
+    v-model:visible="visible"
+    width="100%"
+    class="set-mask-dialog"
+    :closable="false"
+    :footer="null"
+  >
+    <div class="close-modal-icon" @click="hide"><CloseOutlined /></div>
+    <div class="style-tip-message">点击图片中所有保持不变的区域</div>
+    <div class="mask-img" :style="maskImgStyle" @mousemove="handleMouseMove($event)">
+      <img :src="image && image.src" />
+      <img v-if="maskImage" class="mask-image" :src="maskImage.src" />
+    </div>
+    <div class="style-opreate">
+      <a-button value="small" shape="round">确定</a-button>
+    </div>
+  </a-modal>
 </template>
 <script setup>
+import { ref, watch } from 'vue'
 import npyjs from 'npyjs'
 import * as _ from 'underscore'
-import { ref, watch } from 'vue'
 import * as ort from 'onnxruntime-web'
 import { modelData } from '@/utils/onnxModelAPI'
-import { onnxMaskToImage } from '@/utils/maskUtils'
 import { InferenceSession } from 'onnxruntime-web'
+import { onnxMaskToImage } from '@/utils/maskUtils'
+import { CloseOutlined } from '@ant-design/icons-vue'
+
+const visible = ref(false)
+const hide = () => {
+  visible.value = false
+}
 
 const image = ref(null)
 const maskImage = ref(null)
@@ -19,7 +38,7 @@ const modelScale = ref(null)
 const model = ref(null)
 const tensor = ref(null)
 const clicks = ref(null)
-
+const maskImgStyle = ref({})
 const baseUrl = import.meta.env.MODE === 'development' ? '/api' : ''
 const IMAGE_PATH = baseUrl + '/static/data/202.png'
 const IMAGE_EMBEDDING = baseUrl + '/static/data/202.npy'
@@ -57,6 +76,11 @@ const loadImage = async (url) => {
         width,
         samScale
       }
+      maskImgStyle.value = {
+        height: height + 'px',
+        width: width + 'px'
+      }
+      console.log('maskImgStyle.value: ', maskImgStyle.value)
       img.width = width
       img.height = height
       image.value = img
@@ -84,7 +108,7 @@ const getClick = (x, y) => {
   const clickType = 1
   return { x, y, clickType }
 }
-const handleMouseMove = _.throttle((e) => {
+const handleMouseMove = (e) => {
   let el = e.target
   const rect = el.getBoundingClientRect()
   let x = e.clientX - rect.left
@@ -96,11 +120,7 @@ const handleMouseMove = _.throttle((e) => {
   if (click) {
     clicks.value = [click]
   }
-}, 15)
-
-watch(clicks, () => {
-  runONNX()
-})
+}
 
 const runONNX = async () => {
   try {
@@ -123,7 +143,6 @@ const runONNX = async () => {
       // Run the SAM ONNX model with the feeds returned from modelData()
       const results = await model.value.run(feeds)
       const output = results[model.value.outputNames[0]]
-      console.log('output: ', output)
       // The predicted mask returned from the ONNX model is an array which is
       // rendered as an HTML image using onnxMaskToImage() from maskUtils.tsx.
       maskImage.value = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
@@ -132,22 +151,74 @@ const runONNX = async () => {
     console.log(e)
   }
 }
+
+watch(clicks, () => {
+  runONNX()
+})
+
+defineExpose({
+  show: () => {
+    visible.value = true
+  }
+})
 </script>
 <style lang="scss">
-.mask-img {
-  height: 200px;
-  width: 200px;
-  background: #ffffff;
-  position: relative;
-  img {
-    height: 100%;
-  }
-  .mask-image {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
+.set-mask-dialog {
+  top: 0;
+  padding: 0;
+  height: 100%;
+  max-width: 100%;
+  .ant-modal-content {
+    display: flex;
+    height: 100vh;
+    align-items: center;
+    background: hsla(0, 0%, 8%, 0) !important;
+    .ant-modal-body {
+      padding: 0;
+      width: 100%;
+      height: auto;
+      .close-modal-icon {
+        top: 20px;
+        right: 20px;
+        z-index: 1002;
+        display: flex;
+        font-size: 32px;
+        cursor: pointer;
+        position: fixed;
+        color: #ffffff;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+      }
+      .style-tip-message {
+        color: #ffffff;
+        text-align: center;
+        margin: 20px auto;
+        width: 100%;
+      }
+      .mask-img {
+        background: #ffffff;
+        position: relative;
+        margin: 0 auto;
+        img {
+          height: 100%;
+        }
+        .mask-image {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+        }
+      }
+      .style-opreate {
+        margin-top: 20px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
   }
 }
 </style>
