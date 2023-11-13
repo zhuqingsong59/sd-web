@@ -105,7 +105,7 @@ export const getDetect = (params) => {
     data: params
   })
 }
-// 获取预览图
+// 获取色块图
 export const segment = (params) => {
   return axios({
     method: 'post',
@@ -118,6 +118,14 @@ export const mask = (params) => {
   return axios({
     method: 'post',
     url: baseUrl + '/mask',
+    data: params
+  })
+}
+// 获取覆盖图
+export const segmentAnything = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/segmentAnything',
     data: params
   })
 }

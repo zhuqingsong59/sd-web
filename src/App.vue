@@ -34,7 +34,12 @@
               <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange">
                 解析图片信息
               </a-checkbox>
-              <a-checkbox v-model:checked="isMaskImg" @change="maskChange"> 图片选区 </a-checkbox>
+              <div class="mask-image" v-if="uploadImg">
+                <img :src="maskImg" alt="" />
+                <a-button v-if="!maskImg" type="primary" :loading="maskLoading" @click="setMask"
+                  >编辑选区</a-button
+                >
+              </div>
             </a-collapse-panel>
             <a-collapse-panel key="negativePrompt" header="反向提示词">
               <a-button class="translate-btn" type="text" @click="translateFn(true)">
@@ -268,9 +273,9 @@
             >
               生成
             </a-button>
-            <a-button type="primary" style="margin-top: 16px" block @click="creatMask">
+            <!-- <a-button type="primary" style="margin-top: 16px" block @click="creatMask">
               创建遮罩
-            </a-button>
+            </a-button> -->
             <!-- <a-button type="primary" style="margin-top: 16px" block @click="testFn">
               测试
             </a-button> -->
@@ -303,7 +308,7 @@
         <a-modal v-model:visible="modalVisible" :width="560" title="图片绘制" @ok="ok">
           <canvas id="modalCanvas"></canvas>
         </a-modal>
-        <setMaskDialog ref="setMaskDialogRef" />
+        <setMaskDialog ref="setMaskDialogRef" @get-mask="onGetMask" />
         <maskDialog ref="maskDialogRef" />
         <openposeDialog ref="openposeDialogRef" />
       </a-layout-content>
@@ -324,7 +329,8 @@ import {
   setCurrentModel,
   getModelList,
   getModuleList,
-  getDetect
+  getDetect,
+  segmentAnything
   // testApi
 } from '@/service'
 import { message } from 'ant-design-vue'
@@ -386,6 +392,14 @@ const imgUpload = ({ file }) => {
     if (isAnalysisImg.value) {
       analysisImg()
     }
+    maskLoading.value = true
+    maskImg.value = ''
+    segmentAnything({
+      image: uploadImg.value
+    }).then(({ data }) => {
+      maskLoading.value = false
+      maskOption = data.data
+    })
   })
   // uploadImg.value = URL.createObjectURL(file)
 }
@@ -410,16 +424,15 @@ const analysisChange = () => {
   }
 }
 
-const isMaskImg = ref(false)
+const maskImg = ref('')
+const maskLoading = ref(false)
+let maskOption
 const setMaskDialogRef = ref(null)
-const maskChange = () => {
-  if (isMaskImg.value && !uploadImg.value) {
-    isMaskImg.value = false
-    return
-  }
-  if (isMaskImg.value) {
-    setMaskDialogRef.value.show()
-  }
+const setMask = () => {
+  setMaskDialogRef.value.show(maskOption)
+}
+const onGetMask = (img) => {
+  maskImg.value = img
 }
 
 // 图片比例
@@ -576,6 +589,9 @@ const generate = () => {
   }
   if (uploadImg.value) {
     generateParams.images = uploadImg.value
+    if (maskImg.value) {
+      generateParams.mask_image = maskImg.value
+    }
   }
   if (controlnetEnable.value) {
     generateParams.controlnet_units = {
@@ -848,9 +864,9 @@ const ok = () => {
 //   })
 // }
 const maskDialogRef = ref()
-const creatMask = () => {
-  maskDialogRef.value.show()
-}
+// const creatMask = () => {
+//   maskDialogRef.value.show()
+// }
 
 const openposeDialogRef = ref()
 const poseEdit = () => {
@@ -937,6 +953,18 @@ body,
                     cursor: pointer;
                     color: #ffffff;
                     position: absolute;
+                  }
+                }
+                .mask-image {
+                  display: flex;
+                  height: 116px;
+                  margin-top: 8px;
+                  position: relative;
+                  align-items: center;
+                  background: #ffffff;
+                  justify-content: center;
+                  img {
+                    height: 100%;
                   }
                 }
                 .ant-checkbox-wrapper {

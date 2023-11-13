@@ -13,19 +13,20 @@
       <img v-if="maskImage" class="mask-image" :src="maskImage.src" />
     </div>
     <div class="style-opreate">
-      <a-button value="small" shape="round">确定</a-button>
+      <a-button value="small" shape="round" @click="getMask">确定</a-button>
     </div>
   </a-modal>
 </template>
 <script setup>
-import { ref, watch } from 'vue'
 import npyjs from 'npyjs'
-import * as _ from 'underscore'
+import { ref, watch } from 'vue'
 import * as ort from 'onnxruntime-web'
 import { modelData } from '@/utils/onnxModelAPI'
 import { InferenceSession } from 'onnxruntime-web'
 import { onnxMaskToImage } from '@/utils/maskUtils'
 import { CloseOutlined } from '@ant-design/icons-vue'
+
+const emits = defineEmits(['get-mask'])
 
 const visible = ref(false)
 const hide = () => {
@@ -38,11 +39,9 @@ const modelScale = ref(null)
 const model = ref(null)
 const tensor = ref(null)
 const clicks = ref(null)
-const maskImgStyle = ref({})
+const maskImgStyle = ref(null)
 const baseUrl = import.meta.env.MODE === 'development' ? '/api' : ''
-const IMAGE_PATH = baseUrl + '/static/data/202.png'
-const IMAGE_EMBEDDING = baseUrl + '/static/data/202.npy'
-const MODEL_DIR = baseUrl + '/static/data/test.onnx'
+let IMAGE_PATH, IMAGE_EMBEDDING, MODEL_DIR
 
 // Initialize the ONNX model
 const initModel = async () => {
@@ -55,7 +54,6 @@ const initModel = async () => {
     console.log(e)
   }
 }
-initModel()
 
 const handleImageScale = (image) => {
   // Input images to SAM must be resized so the longest side is 1024
@@ -80,7 +78,6 @@ const loadImage = async (url) => {
         height: height + 'px',
         width: width + 'px'
       }
-      console.log('maskImgStyle.value: ', maskImgStyle.value)
       img.width = width
       img.height = height
       image.value = img
@@ -89,8 +86,6 @@ const loadImage = async (url) => {
     console.log(error)
   }
 }
-const url = new URL(IMAGE_PATH, location.origin)
-loadImage(url)
 
 // Load the Segment Anything pre-computed embedding
 // Decode a Numpy file into a tensor.
@@ -100,9 +95,6 @@ const loadNpyTensor = async (tensorFile, dType) => {
   const tensor = new ort.Tensor(dType, npArray.data, npArray.shape)
   return tensor
 }
-Promise.resolve(loadNpyTensor(IMAGE_EMBEDDING, 'float32')).then(
-  (embedding) => (tensor.value = embedding)
-)
 
 const getClick = (x, y) => {
   const clickType = 1
@@ -152,14 +144,35 @@ const runONNX = async () => {
   }
 }
 
+const show = (option) => {
+  maskImgStyle.value = null
+  maskImage.value = null
+
+  IMAGE_PATH = baseUrl + option.image
+  IMAGE_EMBEDDING = baseUrl + option.embedding
+  MODEL_DIR = baseUrl + option.model
+
+  initModel()
+
+  Promise.resolve(loadNpyTensor(IMAGE_EMBEDDING, 'float32')).then(
+    (embedding) => (tensor.value = embedding)
+  )
+  const url = new URL(IMAGE_PATH, location.origin)
+  loadImage(url)
+  visible.value = true
+}
+
+const getMask = () => {
+  visible.value = false
+  emits('get-mask', maskImage.value.src)
+}
+
 watch(clicks, () => {
   runONNX()
 })
 
 defineExpose({
-  show: () => {
-    visible.value = true
-  }
+  show
 })
 </script>
 <style lang="scss">
