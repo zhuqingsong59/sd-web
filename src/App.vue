@@ -34,11 +34,16 @@
               <a-checkbox v-model:checked="isAnalysisImg" @change="analysisChange">
                 解析图片信息
               </a-checkbox>
-              <div class="mask-image" v-if="uploadImg">
-                <img :src="maskImg" alt="" />
+              <a-checkbox v-model:checked="isSegment" @change="segmentChange">
+                固化区域
+              </a-checkbox>
+              <div class="mask-image" v-if="uploadImg && isSegment">
+                <img :src="maskImg" alt="" style="position: absolute" />
                 <a-button v-if="!maskImg" type="primary" :loading="maskLoading" @click="setMask"
                   >编辑选区</a-button
                 >
+                <img :src="uploadImg" v-if="maskImg" class="source-image" alt="" />
+                <DeleteFilled @click="deleteMask" />
               </div>
             </a-collapse-panel>
             <a-collapse-panel key="negativePrompt" header="反向提示词">
@@ -336,8 +341,8 @@ import {
 import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style/css'
 import maskDialog from '@/components/maskDialog.vue'
-import setMaskDialog from './components/setMaskDialog.vue'
-import openposeDialog from './components/openposeDialog.vue'
+import setMaskDialog from '@/components/setMaskDialog.vue'
+import openposeDialog from '@/components/openposeDialog.vue'
 import { ref, computed, onMounted, reactive, watch, nextTick, h } from 'vue'
 import {
   EyeOutlined,
@@ -392,14 +397,9 @@ const imgUpload = ({ file }) => {
     if (isAnalysisImg.value) {
       analysisImg()
     }
-    maskLoading.value = true
-    maskImg.value = ''
-    segmentAnything({
-      image: uploadImg.value
-    }).then(({ data }) => {
-      maskLoading.value = false
-      maskOption = data.data
-    })
+    if (isSegment.value) {
+      segmentImg()
+    }
   })
   // uploadImg.value = URL.createObjectURL(file)
 }
@@ -425,16 +425,34 @@ const analysisChange = () => {
 }
 
 const maskImg = ref('')
+const isSegment = ref(false)
+const segmentChange = () => {
+  if (isSegment.value && uploadImg.value) {
+    segmentImg()
+  }
+}
 const maskLoading = ref(false)
 let maskOption
 const setMaskDialogRef = ref(null)
 const setMask = () => {
   setMaskDialogRef.value.show(maskOption)
 }
+const deleteMask = () => {
+  maskImg.value = ''
+}
 const onGetMask = (img) => {
   maskImg.value = img
 }
-
+const segmentImg = () => {
+  maskLoading.value = true
+  maskImg.value = ''
+  segmentAnything({
+    image: uploadImg.value
+  }).then(({ data }) => {
+    maskLoading.value = false
+    maskOption = data.data
+  })
+}
 // 图片比例
 const picScale = ref(5)
 // 比例换算对应
@@ -965,6 +983,12 @@ body,
                   justify-content: center;
                   img {
                     height: 100%;
+                  }
+                  .anticon-delete {
+                    top: 8px;
+                    right: 8px;
+                    cursor: pointer;
+                    position: absolute;
                   }
                 }
                 .ant-checkbox-wrapper {

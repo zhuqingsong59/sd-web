@@ -8,8 +8,15 @@
   >
     <div class="close-modal-icon" @click="hide"><CloseOutlined /></div>
     <div class="style-tip-message">点击图片中所有保持不变的区域</div>
-    <div class="mask-img" :style="maskImgStyle" @mousemove="handleMouseMove($event)">
+    <div
+      class="mask-img"
+      :style="maskImgStyle"
+      @mousemove="handleMouseMove($event)"
+      @mouseleave="hoverMask = null"
+      @click="handleClick($event)"
+    >
       <img :src="image && image.src" />
+      <img v-if="hoverMask" class="mask-image" :src="hoverMask.src" />
       <img v-if="maskImage" class="mask-image" :src="maskImage.src" />
     </div>
     <div class="style-opreate">
@@ -34,6 +41,7 @@ const hide = () => {
 }
 
 const image = ref(null)
+const hoverMask = ref(null)
 const maskImage = ref(null)
 const modelScale = ref(null)
 const model = ref(null)
@@ -113,6 +121,21 @@ const handleMouseMove = (e) => {
     clicks.value = [click]
   }
 }
+let isClick = false
+const handleClick = (e) => {
+  let el = e.target
+  const rect = el.getBoundingClientRect()
+  let x = e.clientX - rect.left
+  let y = e.clientY - rect.top
+  const imageScale = image.value ? image.value.width / el.offsetWidth : 1
+  x *= imageScale
+  y *= imageScale
+  const click = getClick(x, y)
+  if (click) {
+    clicks.value = [click]
+    isClick = true
+  }
+}
 
 const runONNX = async () => {
   try {
@@ -137,7 +160,12 @@ const runONNX = async () => {
       const output = results[model.value.outputNames[0]]
       // The predicted mask returned from the ONNX model is an array which is
       // rendered as an HTML image using onnxMaskToImage() from maskUtils.tsx.
-      maskImage.value = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
+      if (isClick) {
+        maskImage.value = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
+        isClick = false
+      } else {
+        hoverMask.value = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
+      }
     }
   } catch (e) {
     console.log(e)
@@ -146,8 +174,7 @@ const runONNX = async () => {
 
 const show = (option) => {
   maskImgStyle.value = null
-  maskImage.value = null
-
+  hoverMask.value = null
   IMAGE_PATH = baseUrl + option.image
   IMAGE_EMBEDDING = baseUrl + option.embedding
   MODEL_DIR = baseUrl + option.model
@@ -163,6 +190,7 @@ const show = (option) => {
 }
 
 const getMask = () => {
+  if (!maskImage.value) return
   visible.value = false
   emits('get-mask', maskImage.value.src)
 }
@@ -222,6 +250,7 @@ defineExpose({
           top: 0;
           width: 100%;
           height: 100%;
+          opacity: 0.4;
         }
       }
       .style-opreate {

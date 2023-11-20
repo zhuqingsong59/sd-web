@@ -6,8 +6,7 @@
 
 // Convert the onnx model mask prediction to ImageData
 function arrayToImageData(input, width, height) {
-  // const [r, g, b, a] = [0, 114, 189, 255]; // the masks's blue color
-  const [r, g, b, a] = [128, 0, 128, 255]
+  const [r, g, b, a] = [0, 114, 189, 255] // the masks's blue color
   const arr = new Uint8ClampedArray(4 * width * height).fill(0)
   for (let i = 0; i < input.length; i++) {
     // Threshold the onnx model mask prediction at 0.0
