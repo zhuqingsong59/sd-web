@@ -129,3 +129,11 @@ export const segmentAnything = (params) => {
     data: params
   })
 }
+// 合并mask
+export const mergeMask = (params) => {
+  return axios({
+    method: 'post',
+    url: baseUrl + '/mergeMask',
+    data: params
+  })
+}

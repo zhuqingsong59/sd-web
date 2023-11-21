@@ -17,7 +17,14 @@
     >
       <img :src="image && image.src" />
       <img v-if="hoverMask" class="mask-image" :src="hoverMask.src" />
-      <img v-if="maskImage" class="mask-image" :src="maskImage.src" />
+      <template v-if="maskImageList.length">
+        <img
+          :key="index"
+          v-for="(image, index) in maskImageList"
+          class="mask-image"
+          :src="image.src"
+        />
+      </template>
     </div>
     <div class="style-opreate">
       <a-button value="small" shape="round" @click="getMask">确定</a-button>
@@ -28,6 +35,7 @@
 import npyjs from 'npyjs'
 import { ref, watch } from 'vue'
 import * as ort from 'onnxruntime-web'
+import { mergeMask } from '@/service'
 import { modelData } from '@/utils/onnxModelAPI'
 import { InferenceSession } from 'onnxruntime-web'
 import { onnxMaskToImage } from '@/utils/maskUtils'
@@ -42,7 +50,7 @@ const hide = () => {
 
 const image = ref(null)
 const hoverMask = ref(null)
-const maskImage = ref(null)
+const maskImageList = ref([])
 const modelScale = ref(null)
 const model = ref(null)
 const tensor = ref(null)
@@ -50,6 +58,7 @@ const clicks = ref(null)
 const maskImgStyle = ref(null)
 const baseUrl = import.meta.env.MODE === 'development' ? '/api' : ''
 let IMAGE_PATH, IMAGE_EMBEDDING, MODEL_DIR
+MODEL_DIR = baseUrl + '/static/onnx/vit_h.onnx'
 
 // Initialize the ONNX model
 const initModel = async () => {
@@ -62,7 +71,7 @@ const initModel = async () => {
     console.log(e)
   }
 }
-
+initModel()
 const handleImageScale = (image) => {
   // Input images to SAM must be resized so the longest side is 1024
   const LONG_SIDE_LENGTH = 1024
@@ -161,7 +170,10 @@ const runONNX = async () => {
       // The predicted mask returned from the ONNX model is an array which is
       // rendered as an HTML image using onnxMaskToImage() from maskUtils.tsx.
       if (isClick) {
-        maskImage.value = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
+        const mask = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
+        if (!maskImageList.value.some((listItem) => listItem.src === mask.src)) {
+          maskImageList.value.push(mask)
+        }
         isClick = false
       } else {
         hoverMask.value = onnxMaskToImage(output.data, output.dims[2], output.dims[3])
@@ -172,27 +184,37 @@ const runONNX = async () => {
   }
 }
 
+const loadTensor = (IMAGE_EMBEDDING) => {
+  Promise.resolve(loadNpyTensor(baseUrl + IMAGE_EMBEDDING, 'float32')).then(
+    (embedding) => (tensor.value = embedding)
+  )
+}
+
 const show = (option) => {
   maskImgStyle.value = null
   hoverMask.value = null
+  maskImageList.value = []
+
   IMAGE_PATH = baseUrl + option.image
-  IMAGE_EMBEDDING = baseUrl + option.embedding
-  MODEL_DIR = baseUrl + option.model
-
-  initModel()
-
-  Promise.resolve(loadNpyTensor(IMAGE_EMBEDDING, 'float32')).then(
-    (embedding) => (tensor.value = embedding)
-  )
   const url = new URL(IMAGE_PATH, location.origin)
   loadImage(url)
   visible.value = true
 }
 
 const getMask = () => {
-  if (!maskImage.value) return
-  visible.value = false
-  emits('get-mask', maskImage.value.src)
+  if (!maskImageList.value.length) return
+  if (maskImageList.value.length > 1) {
+    mergeMask({
+      mask_list: maskImageList.value.map((item) => item.src)
+    }).then(({ data }) => {
+      console.log('data: ', data)
+      emits('get-mask', data.data)
+      visible.value = false
+    })
+  } else {
+    emits('get-mask', maskImageList.value[0].src)
+    visible.value = false
+  }
 }
 
 watch(clicks, () => {
@@ -200,7 +222,8 @@ watch(clicks, () => {
 })
 
 defineExpose({
-  show
+  show,
+  loadTensor
 })
 </script>
 <style lang="scss">

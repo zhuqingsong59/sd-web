@@ -38,7 +38,7 @@
                 固化区域
               </a-checkbox>
               <div class="mask-image" v-if="uploadImg && isSegment">
-                <img :src="maskImg" alt="" style="position: absolute" />
+                <img :src="maskImg" alt="" style="position: absolute; opacity: 0.6" />
                 <a-button v-if="!maskImg" type="primary" :loading="maskLoading" @click="setMask"
                   >编辑选区</a-button
                 >
@@ -451,6 +451,7 @@ const segmentImg = () => {
   }).then(({ data }) => {
     maskLoading.value = false
     maskOption = data.data
+    setMaskDialogRef.value.loadTensor(maskOption.embedding)
   })
 }
 // 图片比例
