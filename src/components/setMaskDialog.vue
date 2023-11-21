@@ -57,7 +57,7 @@ const tensor = ref(null)
 const clicks = ref(null)
 const maskImgStyle = ref(null)
 const baseUrl = import.meta.env.MODE === 'development' ? '/api' : ''
-let IMAGE_PATH, IMAGE_EMBEDDING, MODEL_DIR
+let IMAGE_PATH, MODEL_DIR
 MODEL_DIR = baseUrl + '/static/onnx/vit_h.onnx'
 
 // Initialize the ONNX model
@@ -193,6 +193,7 @@ const loadTensor = (IMAGE_EMBEDDING) => {
 const show = (option) => {
   maskImgStyle.value = null
   hoverMask.value = null
+  image.value = null
   maskImageList.value = []
 
   IMAGE_PATH = baseUrl + option.image
@@ -207,7 +208,6 @@ const getMask = () => {
     mergeMask({
       mask_list: maskImageList.value.map((item) => item.src)
     }).then(({ data }) => {
-      console.log('data: ', data)
       emits('get-mask', data.data)
       visible.value = false
     })
